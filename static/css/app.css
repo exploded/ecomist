@@ -225,6 +225,21 @@ textarea.input { resize: vertical; min-height: 70px; }
 .input-row { display: flex; gap: 8px; align-items: center; }
 .input-row .input { flex: 1; }
 
+/* Checkbox pick-list (e.g. suburbs when building a run). */
+.check-list { display: flex; flex-direction: column; gap: 6px; }
+.check-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; min-height: 44px; cursor: pointer;
+  border: 1.5px solid var(--mist-200); border-radius: var(--radius-sm);
+  transition: border-color .12s ease, background .12s ease;
+}
+.check-row:hover { background: var(--pine-50); }
+.check-row input[type="checkbox"] {
+  width: 20px; height: 20px; margin: 0; flex-shrink: 0; accent-color: var(--pine-600);
+}
+.check-row .check-name { flex: 1; min-width: 0; font-weight: 600; }
+.check-row .check-meta { flex-shrink: 0; color: var(--mist-600); font-size: .84rem; }
+
 /* Save-as-you-type feedback: green flash on success, red on failure. */
 .autosave.save-ok { animation: saveOk 1.4s ease; }
 .autosave.save-err { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-soft); }

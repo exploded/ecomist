@@ -1,0 +1,49 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+  <div style="min-width:0">
+    <p class="page-sub"><a href="/runs" style="color:inherit">Runs</a> /</p>
+    <h1>New run from suburbs</h1>
+  </div>
+</div>
+
+{{if .Items}}
+<form class="card no-print" hx-post="/runs/from-suburbs" hx-swap="none">
+  <div class="field">
+    <label for="run-name">Run name</label>
+    <input id="run-name" class="input" type="text" name="name" placeholder="e.g. North side Tuesday&hellip;" required>
+  </div>
+
+  <p class="section-title" style="margin-top:20px"><span>Suburbs</span></p>
+  <p class="page-sub" style="margin:-4px 0 12px">
+    Tick the suburbs to include. Every business in them that isn&rsquo;t already on a run will be added.
+  </p>
+
+  <div class="check-list">
+    <label class="check-row" style="background:var(--mist-100)">
+      <input type="checkbox"
+        onchange="var s=this.checked;this.closest('form').querySelectorAll('input[name=suburbs]').forEach(function(c){c.checked=s})">
+      <span class="check-name">Select all</span>
+    </label>
+    {{range .Items}}
+    <label class="check-row">
+      <input type="checkbox" name="suburbs" value="{{.Name}}">
+      <span class="check-name">{{.Name}}</span>
+      <span class="check-meta">{{.Count}} business{{if ne .Count 1}}es{{end}}</span>
+    </label>
+    {{end}}
+  </div>
+
+  <div style="display:flex;gap:8px;margin-top:18px">
+    <button type="submit" class="btn btn-accent" hx-disabled-elt="this">Create run</button>
+    <a class="btn btn-ghost" href="/runs">Cancel</a>
+  </div>
+</form>
+{{else}}
+<div class="empty">
+  No businesses available to build a run from &mdash; every business is either already on a run or has no suburb set.
+  <div style="margin-top:14px"><a class="btn btn-ghost" href="/runs">Back to runs</a></div>
+</div>
+{{end}}
+{{end}}

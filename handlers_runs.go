@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/exploded/ecomist/internal/auth"
@@ -41,6 +42,146 @@ func (a *app) runCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	run, err := a.q.GetLastRun(r.Context())
 	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	w.Header().Set("HX-Redirect", "/runs/"+itoa(run.ID))
+	w.WriteHeader(http.StatusOK)
+}
+
+// suburbOption is one selectable suburb on the "new run" picker, with the
+// number of businesses in it that aren't on a run yet.
+type suburbOption struct {
+	Name  string
+	Count int
+}
+
+// suburbOptions groups the franchise's unassigned customers by suburb (skipping
+// blank suburbs) so the picker only offers suburbs that have businesses to add.
+func (a *app) suburbOptions(r *http.Request) ([]suburbOption, error) {
+	cur := auth.FromContext(r.Context())
+	unassigned, err := a.q.ListUnassignedCustomers(r.Context(), cur.FranchiseID)
+	if err != nil {
+		return nil, err
+	}
+	counts := map[string]int{}
+	for _, c := range unassigned {
+		if s := strings.TrimSpace(c.Suburb); s != "" {
+			counts[s]++
+		}
+	}
+	out := make([]suburbOption, 0, len(counts))
+	for name, n := range counts {
+		out = append(out, suburbOption{Name: name, Count: n})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out, nil
+}
+
+// runNew shows the "create a run from suburbs" picker.
+func (a *app) runNew(w http.ResponseWriter, r *http.Request) {
+	cur := auth.FromContext(r.Context())
+	if cur.FranchiseID == 0 {
+		toast(w, noFranchiseMsg, "error")
+		w.Header().Set("HX-Redirect", "/runs")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	suburbs, err := a.suburbOptions(r)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	pd := a.pageData(r, "New run")
+	pd.Items = suburbs
+	a.render(w, r, "runs/new", "", pd)
+}
+
+// runCreateFromSuburbs creates a run and assigns every unassigned business in
+// the selected suburbs to it, all in one transaction.
+func (a *app) runCreateFromSuburbs(w http.ResponseWriter, r *http.Request) {
+	cur := auth.FromContext(r.Context())
+	if cur.FranchiseID == 0 {
+		toast(w, noFranchiseMsg, "error")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		toast(w, "Please enter a run name", "error")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	selected := map[string]bool{}
+	for _, s := range r.Form["suburbs"] {
+		if s = strings.TrimSpace(s); s != "" {
+			selected[s] = true
+		}
+	}
+	if len(selected) == 0 {
+		toast(w, "Please tick at least one suburb", "error")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	unassigned, err := a.q.ListUnassignedCustomers(r.Context(), cur.FranchiseID)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	// Keep only businesses in the chosen suburbs, ordered by suburb then name so
+	// the new run's stops start in a sensible order.
+	var pick []db.Customer
+	for _, c := range unassigned {
+		if selected[strings.TrimSpace(c.Suburb)] {
+			pick = append(pick, c)
+		}
+	}
+	if len(pick) == 0 {
+		toast(w, "No businesses to add from those suburbs", "error")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	sort.SliceStable(pick, func(i, j int) bool {
+		if pick[i].Suburb != pick[j].Suburb {
+			return pick[i].Suburb < pick[j].Suburb
+		}
+		return pick[i].Name < pick[j].Name
+	})
+
+	tx, err := a.rawDB.BeginTx(r.Context(), nil)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	defer tx.Rollback()
+	qtx := a.q.WithTx(tx)
+
+	if err := qtx.CreateRun(r.Context(), db.CreateRunParams{FranchiseID: cur.FranchiseID, Name: name}); err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	run, err := qtx.GetLastRun(r.Context())
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	// Assign one at a time so each stop gets the next sort_order (MAX+1).
+	for _, c := range pick {
+		if err := qtx.AssignCustomerToRun(r.Context(), db.AssignCustomerToRunParams{
+			RunID:   sqlNullInt(run.ID),
+			RunID_2: sqlNullInt(run.ID),
+			ID:      c.ID,
+		}); err != nil {
+			a.serverError(w, r, err)
+			return
+		}
+	}
+	if err := tx.Commit(); err != nil {
 		a.serverError(w, r, err)
 		return
 	}

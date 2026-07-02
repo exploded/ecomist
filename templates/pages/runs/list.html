@@ -6,11 +6,12 @@
     <h1>Runs</h1>
     <p class="page-sub">{{.FranchiseName}}</p>
   </div>
+  <a class="btn btn-sm" href="/runs/new">New run from suburbs</a>
 </div>
 
 <form class="card no-print" hx-post="/runs" hx-swap="none" style="display:flex;gap:8px">
-  <input class="input" type="text" name="name" placeholder="New run name&hellip;" required>
-  <button type="submit" class="btn" hx-disabled-elt="this">Add</button>
+  <input class="input" type="text" name="name" placeholder="New empty run name&hellip;" required>
+  <button type="submit" class="btn btn-ghost" hx-disabled-elt="this">Add empty</button>
 </form>
 
 <div class="section" style="min-height:120px">
