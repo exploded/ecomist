@@ -1,6 +1,9 @@
 {{define "customers/_dispensers"}}
 {{$c := .Item}}
 <div id="dispenser-section">
+  <datalist id="zone-names">
+    {{range .Extra.Zones}}{{if .Label}}<option value="{{.Label}}">{{end}}{{end}}
+  </datalist>
   <p class="section-title">
     <span>Dispensers</span>
     <span class="tally-row">
@@ -82,7 +85,15 @@
       <summary class="btn btn-ghost btn-sm" style="display:inline-flex">+ Add dispenser{{with .Zone}} to {{if .Label}}{{.Label}}{{else}}{{.Area}}{{end}}{{end}}</summary>
       <form class="card" hx-post="/customers/{{$c.ID}}/dispensers"
             hx-target="#dispenser-section" hx-swap="outerHTML" style="margin-top:8px">
-        <input type="hidden" name="zone_id" value="{{with .Zone}}{{.ID}}{{end}}">
+        {{if .Zone}}
+        <input type="hidden" name="zone_id" value="{{.Zone.ID}}">
+        {{else}}
+        <div class="field">
+          <label>Zone</label>
+          <input class="input" name="zone_name" list="zone-names" autocomplete="off"
+            placeholder="Optional &ndash; type a name to create a zone">
+        </div>
+        {{end}}
         <div class="field">
           <label>Location</label>
           <input class="input" name="location" placeholder="e.g. Foyer, near reception" required>

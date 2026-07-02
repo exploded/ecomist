@@ -5,6 +5,13 @@
     <span>Ecomist</span>
   </a>
   {{if .Cur}}
+  <nav class="topnav">
+    <a href="/" class="tn-item">Today</a>
+    <a href="/runs" class="tn-item">Runs</a>
+    <a href="/customers" class="tn-item">Customers</a>
+    <a href="/lookups" class="tn-item">Lookups</a>
+    <a href="/import" class="tn-item">Import</a>
+  </nav>
   <div class="topbar-right">
     {{if and .Cur.IsAdmin .Franchises}}
     <form method="post" action="/switch-franchise" class="franchise-switch">

@@ -76,6 +76,9 @@ SELECT * FROM zones WHERE customer_id = ? ORDER BY sort_order, id;
 -- name: GetZone :one
 SELECT * FROM zones WHERE id = ?;
 
+-- name: GetZoneByLabel :one
+SELECT * FROM zones WHERE customer_id = ? AND label = ? COLLATE NOCASE LIMIT 1;
+
 -- name: CreateZone :exec
 INSERT INTO zones (customer_id, sort_order, label, area)
 VALUES (?, (SELECT COALESCE(MAX(z2.sort_order), 0) + 1 FROM zones z2 WHERE z2.customer_id = ?), ?, ?);

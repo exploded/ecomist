@@ -76,6 +76,17 @@ body {
 }
 .brand-mark { width: 22px; height: 22px; color: var(--pine-100); --bg: var(--pine-900); }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
+.topnav { display: none; }
+@media (min-width: 700px) {
+  .topnav { display: flex; align-items: center; gap: 4px; margin-left: 8px; }
+}
+.tn-item {
+  color: var(--pine-100); text-decoration: none; font-size: .92rem; font-weight: 550;
+  padding: 6px 12px; border-radius: 8px; white-space: nowrap;
+  transition: background .12s ease, color .12s ease;
+}
+.tn-item:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+.tn-item.is-active { background: rgba(255, 255, 255, .16); color: #fff; }
 .franchise-name {
   font-size: .8rem; color: var(--pine-100); background: var(--pine-800);
   padding: 4px 10px; border-radius: 999px; white-space: nowrap;
@@ -142,6 +153,13 @@ h1 {
 }
 h2 { font-size: 1.02rem; margin: 0; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+/* Keep the header actions (e.g. the run's Print button) in view while the
+   stops list scrolls. Sticks just below the sticky topbar; padding replaces the
+   margin so the opaque background covers content sliding underneath. */
+.page-header--sticky {
+  position: sticky; top: calc(env(safe-area-inset-top) + 54px); z-index: 30;
+  margin-bottom: 0; padding-bottom: 16px; background: var(--bg);
+}
 .page-sub { color: var(--mist-600); font-size: .88rem; margin: 0; }
 .section { margin-top: 26px; }
 .section-title {
@@ -478,3 +496,40 @@ textarea.input { resize: vertical; min-height: 70px; }
   .card, .table-card { box-shadow: none; border: 1px solid #ddd; }
   a { color: inherit; text-decoration: none; }
 }
+
+/* ---------- Signature sign-off ---------- */
+
+.sign-card { padding: 16px; }
+.sign-card .section-title { margin: 0 0 10px 2px; }
+.sign-pad-wrap { position: relative; }
+.sign-pad {
+  width: 100%; height: 180px; display: block; touch-action: none;
+  background:
+    repeating-linear-gradient(transparent, transparent 43px, var(--mist-100) 44px);
+  border: 1.5px solid var(--mist-200); border-radius: var(--radius-sm);
+  cursor: crosshair;
+}
+.sign-baseline {
+  position: absolute; left: 14px; right: 14px; bottom: 34px;
+  border-top: 1.5px dashed var(--mist-200);
+  color: var(--mist-600); font-size: .72rem; padding-top: 4px;
+  pointer-events: none;
+}
+.sign-actions { display: flex; gap: 10px; margin-top: 12px; align-items: center; }
+.sign-actions .btn-link {
+  background: none; border: none; color: var(--mist-600);
+  font: inherit; font-size: .85rem; cursor: pointer; padding: 6px; margin-right: auto;
+}
+.sign-actions .btn-link:hover { color: var(--ink); text-decoration: underline; }
+.sign-name { margin-top: 12px; }
+.sign-name label { display: block; font-size: .8rem; color: var(--mist-600); margin: 0 0 4px 2px; }
+
+.signed-off { padding: 16px; }
+.signed-img {
+  width: 100%; max-width: 360px; height: auto; display: block;
+  border: 1.5px solid var(--mist-200); border-radius: var(--radius-sm);
+  background: var(--card);
+}
+.signed-meta { margin-top: 10px; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.signed-name { font-weight: 650; }
+.signed-when { color: var(--mist-600); font-size: .84rem; }

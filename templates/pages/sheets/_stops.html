@@ -1,0 +1,36 @@
+{{define "sheets/_stops"}}
+{{$sheet := .Item}}
+{{$open := eq $sheet.Status "open"}}
+<div id="sheet-stops" class="section" style="margin-top:14px">
+  {{range .Items}}
+  <div class="card stop-card is-{{.Status}}">
+    <div class="card-row">
+      <a class="card-link" style="flex:1;min-width:0" href="/sheets/{{$sheet.ID}}/stops/{{.ID}}">
+        <div class="card-title">{{.CustomerName}}</div>
+        <div class="card-sub">
+          {{if .Suburb}}{{.Suburb}} &middot; {{end}}{{.TickedUnits}}/{{.TotalUnits}} dispensers
+          {{if .Note}} &middot; &#128221;{{end}}
+        </div>
+      </a>
+      {{if eq .Status "done"}}
+      <svg class="stop-status-icon" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" fill="var(--ok-soft)" stroke="none"/><path d="m7.5 12.5 3 3 6-7"/></svg>
+      {{else if eq .Status "skipped"}}
+      <svg class="stop-status-icon" viewBox="0 0 24 24" fill="none" stroke="var(--skip)" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10" fill="var(--skip-soft)" stroke="none"/><path d="M8 12h8"/></svg>
+      {{else}}
+      <svg class="stop-status-icon" viewBox="0 0 24 24" fill="none" stroke="var(--mist-400)" stroke-width="2"><circle cx="12" cy="12" r="9.4"/></svg>
+      {{end}}
+      {{if $open}}
+      <div class="no-print" style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+        <button class="btn-icon" aria-label="Move up" style="min-width:34px;min-height:28px;padding:2px"
+          hx-post="/sheets/{{$sheet.ID}}/reorder" hx-vals='{"stop_id":"{{.ID}}","dir":"up"}'
+          hx-target="#sheet-stops" hx-swap="outerHTML">&#9650;</button>
+        <button class="btn-icon" aria-label="Move down" style="min-width:34px;min-height:28px;padding:2px"
+          hx-post="/sheets/{{$sheet.ID}}/reorder" hx-vals='{"stop_id":"{{.ID}}","dir":"down"}'
+          hx-target="#sheet-stops" hx-swap="outerHTML">&#9660;</button>
+      </div>
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}

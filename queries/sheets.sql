@@ -40,6 +40,12 @@ UPDATE run_sheets SET status = 'completed', completed_at = datetime('now') WHERE
 -- name: ReopenRunSheet :exec
 UPDATE run_sheets SET status = 'open', completed_at = NULL WHERE id = ?;
 
+-- name: SaveRunSheetSignature :exec
+UPDATE run_sheets SET signature = ?, signed_by = ?, signed_at = datetime('now') WHERE id = ?;
+
+-- name: ClearRunSheetSignature :exec
+UPDATE run_sheets SET signature = '', signed_by = '', signed_at = NULL WHERE id = ?;
+
 -- Stops -------------------------------------------------------------------
 
 -- name: CreateStopsForSheet :exec
@@ -86,6 +92,9 @@ WHERE id = ?;
 
 -- name: UpdateStopNote :exec
 UPDATE run_sheet_stops SET note = ? WHERE id = ?;
+
+-- name: SetStopSortOrder :exec
+UPDATE run_sheet_stops SET sort_order = ? WHERE id = ?;
 
 -- name: CountPendingStops :one
 SELECT COUNT(*) FROM run_sheet_stops WHERE run_sheet_id = ? AND status = 'pending';

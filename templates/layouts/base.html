@@ -55,10 +55,10 @@
         if (!m.closest(".combo").contains(e.target)) m.innerHTML = "";
       });
     });
-    // Highlight the current section in the bottom nav.
+    // Highlight the current section in the top and bottom nav.
     (() => {
       const path = location.pathname;
-      document.querySelectorAll(".bn-item").forEach(a => {
+      document.querySelectorAll(".bn-item, .tn-item").forEach(a => {
         const href = a.getAttribute("href");
         if (href === "/" ? (path === "/" || path.startsWith("/sheets")) : path.startsWith(href)) {
           a.classList.add("is-active");

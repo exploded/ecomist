@@ -1,6 +1,8 @@
 package main
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -339,6 +341,35 @@ func (a *app) zoneCreate(w http.ResponseWriter, r *http.Request) {
 	a.renderDispenserSection(w, r, c.ID)
 }
 
+// resolveZone returns the zone id for a dispenser form. A non-empty zone_name
+// (typed straight into the add-dispenser form) find-or-creates a zone for the
+// customer by label; otherwise the hidden zone_id (an existing zone) is used.
+func (a *app) resolveZone(r *http.Request, customerID int64) (sql.NullInt64, error) {
+	name := strings.TrimSpace(r.FormValue("zone_name"))
+	if name == "" {
+		return formNullInt(r, "zone_id"), nil
+	}
+	z, err := a.q.GetZoneByLabel(r.Context(), db.GetZoneByLabelParams{
+		CustomerID: customerID, Label: name,
+	})
+	if err == nil {
+		return sqlNullInt(z.ID), nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return sql.NullInt64{}, err
+	}
+	if err := a.q.CreateZone(r.Context(), db.CreateZoneParams{
+		CustomerID: customerID, CustomerID_2: customerID, Label: name,
+	}); err != nil {
+		return sql.NullInt64{}, err
+	}
+	z, err = a.q.GetLastZone(r.Context())
+	if err != nil {
+		return sql.NullInt64{}, err
+	}
+	return sqlNullInt(z.ID), nil
+}
+
 func (a *app) zoneUpdate(w http.ResponseWriter, r *http.Request) {
 	id, err := pathID(r, "id")
 	if err != nil {
@@ -408,10 +439,15 @@ func (a *app) dispenserCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fragranceID, _ := a.resolveLookup(r, "fragrance_id", "new_fragrance_name", "fragrances")
+	zoneID, err := a.resolveZone(r, customerID)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
 
 	if err := a.q.CreateDispenser(r.Context(), db.CreateDispenserParams{
 		CustomerID:          customerID,
-		ZoneID:              formNullInt(r, "zone_id"),
+		ZoneID:              zoneID,
 		CustomerID_2:        customerID,
 		SeqLabel:            strings.TrimSpace(r.FormValue("seq_label")),
 		Location:            location,

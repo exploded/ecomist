@@ -140,6 +140,60 @@ func (a *app) sheetReopen(w http.ResponseWriter, r *http.Request) {
 	a.redirect(w, r, "/sheets/"+itoa(id))
 }
 
+// maxSignatureLen caps the stored signature data URL. A typical trimmed PNG
+// from the on-screen pad is a few KB; this leaves plenty of headroom while
+// rejecting anything absurd.
+const maxSignatureLen = 512 * 1024
+
+// sheetSign records the customer's sign-off (drawn signature + printed name).
+func (a *app) sheetSign(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if _, err := a.sheetForCur(r, id); a.handleScopeErr(w, r, err) {
+		return
+	}
+	sig := strings.TrimSpace(r.FormValue("signature"))
+	name := strings.TrimSpace(r.FormValue("signed_by"))
+	if name == "" {
+		toast(w, "Please enter the name of the person signing", "error")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	if !strings.HasPrefix(sig, "data:image/png;base64,") || len(sig) > maxSignatureLen {
+		toast(w, "Please draw a signature before saving", "error")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	if err := a.q.SaveRunSheetSignature(r.Context(), db.SaveRunSheetSignatureParams{
+		Signature: sig, SignedBy: name, ID: id,
+	}); err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	toast(w, "Signature saved", "success")
+	a.redirect(w, r, "/sheets/"+itoa(id))
+}
+
+// sheetUnsign clears a saved signature so it can be re-captured.
+func (a *app) sheetUnsign(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if _, err := a.sheetForCur(r, id); a.handleScopeErr(w, r, err) {
+		return
+	}
+	if err := a.q.ClearRunSheetSignature(r.Context(), id); err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	a.redirect(w, r, "/sheets/"+itoa(id))
+}
+
 // --- Stop view -----------------------------------------------------------------
 
 // StopDispenserGroup buckets a stop's dispensers under zone headings.
@@ -447,4 +501,69 @@ func (a *app) stopReopen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.redirect(w, r, "/sheets/"+itoa(stop.RunSheetID)+"/stops/"+itoa(stop.ID))
+}
+
+// stopReorder moves a stop up or down within the sheet's order by swapping
+// sort_order with its neighbour, then re-renders the stop list.
+func (a *app) stopReorder(w http.ResponseWriter, r *http.Request) {
+	sheetID, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	sheet, err := a.sheetForCur(r, sheetID)
+	if a.handleScopeErr(w, r, err) {
+		return
+	}
+	stopID := formInt(r, "stop_id", 0)
+	dir := r.FormValue("dir")
+
+	stops, err := a.q.ListStops(r.Context(), sheet.ID)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	idx := -1
+	for i, s := range stops {
+		if s.ID == stopID {
+			idx = i
+			break
+		}
+	}
+	swap := -1
+	if dir == "up" && idx > 0 {
+		swap = idx - 1
+	} else if dir == "down" && idx >= 0 && idx < len(stops)-1 {
+		swap = idx + 1
+	}
+	if swap >= 0 {
+		// Renumber the whole list to keep sort_order dense, then swap.
+		stops[idx], stops[swap] = stops[swap], stops[idx]
+		for i, s := range stops {
+			if err := a.q.SetStopSortOrder(r.Context(), db.SetStopSortOrderParams{
+				SortOrder: int64(i + 1), ID: s.ID,
+			}); err != nil {
+				a.serverError(w, r, err)
+				return
+			}
+		}
+	}
+	a.renderSheetStops(w, r, sheet.ID)
+}
+
+// renderSheetStops re-renders just the stop list of a sheet.
+func (a *app) renderSheetStops(w http.ResponseWriter, r *http.Request, sheetID int64) {
+	sheet, err := a.sheetForCur(r, sheetID)
+	if a.handleScopeErr(w, r, err) {
+		return
+	}
+	stops, err := a.q.ListStops(r.Context(), sheet.ID)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	pd := a.pageData(r, "")
+	pd.Item = sheet
+	pd.Items = stops
+	a.renderNamed(w, r, "sheets/show", "sheets/_stops", pd)
 }

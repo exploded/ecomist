@@ -438,6 +438,30 @@ func (q *Queries) GetZone(ctx context.Context, id int64) (Zone, error) {
 	return i, err
 }
 
+const getZoneByLabel = `-- name: GetZoneByLabel :one
+SELECT id, customer_id, sort_order, label, area, access_notes, notes FROM zones WHERE customer_id = ? AND label = ? COLLATE NOCASE LIMIT 1
+`
+
+type GetZoneByLabelParams struct {
+	CustomerID int64  `json:"customer_id"`
+	Label      string `json:"label"`
+}
+
+func (q *Queries) GetZoneByLabel(ctx context.Context, arg GetZoneByLabelParams) (Zone, error) {
+	row := q.db.QueryRowContext(ctx, getZoneByLabel, arg.CustomerID, arg.Label)
+	var i Zone
+	err := row.Scan(
+		&i.ID,
+		&i.CustomerID,
+		&i.SortOrder,
+		&i.Label,
+		&i.Area,
+		&i.AccessNotes,
+		&i.Notes,
+	)
+	return i, err
+}
+
 const listContactsByCustomer = `-- name: ListContactsByCustomer :many
 
 SELECT id, customer_id, name, role, is_primary, phone, notes FROM contacts WHERE customer_id = ? ORDER BY is_primary DESC, id
