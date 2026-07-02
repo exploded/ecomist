@@ -54,7 +54,8 @@
   {{if eq $stop.Status "pending"}}
   <button class="btn btn-ghost" style="flex:1"
     hx-post="/stops/{{$stop.ID}}/complete" hx-vals='{"status":"skipped"}'
-    hx-prompt="Why are you skipping this stop?" hx-disabled-elt="this">Skip stop</button>
+    data-note-prompt="Why are you skipping this stop?" data-ok-label="Skip stop"
+    hx-disabled-elt="this">Skip stop</button>
   <button class="btn" style="flex:2"
     hx-post="/stops/{{$stop.ID}}/complete" hx-vals='{"status":"done"}' hx-disabled-elt="this">Mark stop done</button>
   {{else}}

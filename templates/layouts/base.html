@@ -18,6 +18,19 @@
   </main>
   {{template "bottomnav" .}}
   <div id="toast-container" aria-live="polite"></div>
+
+  <dialog id="app-confirm" class="confirm-dialog">
+    <div class="cd-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8 7.5 5 10.6 5 14.5A7 7 0 0 0 19 14.5C19 10.6 16 7.5 12 2Z" fill="currentColor" opacity=".9"/><circle cx="12" cy="15" r="2.6" fill="var(--card)"/></svg>
+    </div>
+    <p class="cd-msg"></p>
+    <input class="input cd-input" type="text" style="display:none">
+    <div class="cd-actions">
+      <button type="button" class="btn btn-ghost cd-cancel">Cancel</button>
+      <button type="button" class="btn btn-accent cd-ok">OK</button>
+    </div>
+  </dialog>
+
   <script>
     // Toasts fired via HX-Trigger response headers.
     document.body.addEventListener("showToast", e => {
@@ -49,6 +62,58 @@
         const href = a.getAttribute("href");
         if (href === "/" ? (path === "/" || path.startsWith("/sheets")) : path.startsWith(href)) {
           a.classList.add("is-active");
+        }
+      });
+    })();
+    // Styled confirm/prompt dialogs replacing the browser's native popups.
+    // hx-confirm => OK/Cancel; data-note-prompt => adds a text input whose
+    // value is merged into hx-vals as "note" before the request fires.
+    (() => {
+      const dlg = document.getElementById("app-confirm");
+      const msg = dlg.querySelector(".cd-msg");
+      const inp = dlg.querySelector(".cd-input");
+      let resolveFn = null;
+
+      function ask(question, withInput, okLabel) {
+        return new Promise(resolve => {
+          resolveFn = resolve;
+          msg.textContent = question;
+          dlg.querySelector(".cd-ok").textContent = okLabel || "OK";
+          inp.style.display = withInput ? "" : "none";
+          inp.value = "";
+          dlg.showModal();
+          if (withInput) inp.focus();
+        });
+      }
+      function settle(val) {
+        if (resolveFn) { resolveFn(val); resolveFn = null; }
+        if (dlg.open) dlg.close();
+      }
+      dlg.querySelector(".cd-ok").addEventListener("click", () =>
+        settle(inp.style.display === "none" ? true : inp.value));
+      dlg.querySelector(".cd-cancel").addEventListener("click", () => settle(null));
+      dlg.addEventListener("close", () => settle(null)); // Esc key
+      dlg.addEventListener("click", e => { if (e.target === dlg) settle(null); }); // backdrop tap
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); settle(inp.value); } });
+
+      document.body.addEventListener("htmx:confirm", e => {
+        const elt = e.detail.elt;
+        const notePrompt = elt.getAttribute && elt.getAttribute("data-note-prompt");
+        const question = e.detail.question;
+        if (!question && !notePrompt) return; // ordinary request - default flow
+        e.preventDefault();
+        if (notePrompt) {
+          ask(notePrompt, true, elt.getAttribute("data-ok-label") || "OK").then(val => {
+            if (val === null) return;
+            const vals = JSON.parse(elt.getAttribute("hx-vals") || "{}");
+            vals.note = val;
+            elt.setAttribute("hx-vals", JSON.stringify(vals));
+            e.detail.issueRequest(true);
+          });
+        } else {
+          ask(question, false, elt.getAttribute("data-ok-label") || "OK").then(ok => {
+            if (ok) e.detail.issueRequest(true);
+          });
         }
       });
     })();

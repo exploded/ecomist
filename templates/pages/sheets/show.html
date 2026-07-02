@@ -44,7 +44,7 @@
   {{if eq $sheet.Status "open"}}
   <button class="btn btn-accent btn-block"
     hx-post="/sheets/{{$sheet.ID}}/complete" hx-disabled-elt="this"
-    hx-confirm="Finish this run?">Finish run</button>
+    hx-confirm="Finish this run?" data-ok-label="Finish run">Finish run</button>
   {{else}}
   <button class="btn btn-ghost btn-block"
     hx-post="/sheets/{{$sheet.ID}}/reopen" hx-disabled-elt="this">Reopen run</button>

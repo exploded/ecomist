@@ -13,7 +13,7 @@
   <div style="display:flex;gap:8px;flex-shrink:0">
     <a class="btn btn-ghost btn-sm" href="/runs/{{$run.ID}}/print" target="_blank">Print</a>
     <button class="btn btn-accent btn-sm" hx-post="/runs/{{$run.ID}}/start" hx-disabled-elt="this"
-      hx-confirm="Start {{$run.Name}} now?">Start run</button>
+      hx-confirm="Start {{$run.Name}} now?" data-ok-label="Start run">Start run</button>
   </div>
 </div>
 

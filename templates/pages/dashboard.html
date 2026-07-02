@@ -41,7 +41,7 @@
       </a>
       <button class="btn btn-accent btn-sm"
         hx-post="/runs/{{.ID}}/start" hx-disabled-elt="this"
-        hx-confirm="Start {{.Name}} now?">Start</button>
+        hx-confirm="Start {{.Name}} now?" data-ok-label="Start run">Start</button>
     </div>
   </div>
   {{end}}

@@ -396,6 +396,34 @@ textarea.input { resize: vertical; min-height: 70px; }
 .toast-out { opacity: 0; transition: opacity .4s ease; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } }
 
+/* ---------- Confirm dialog (replaces native confirm/prompt) ---------- */
+
+.confirm-dialog {
+  border: none; padding: 22px 22px 18px; margin: auto;
+  width: min(92vw, 380px);
+  border-radius: 18px; background: var(--card); color: var(--ink);
+  box-shadow: 0 8px 20px rgba(7, 39, 34, .18), 0 24px 70px rgba(7, 39, 34, .28);
+  text-align: center;
+}
+.confirm-dialog[open] { animation: dlgIn .22s cubic-bezier(.34, 1.4, .64, 1); }
+@keyframes dlgIn { from { opacity: 0; transform: translateY(10px) scale(.96); } }
+.confirm-dialog::backdrop {
+  background: rgba(7, 39, 34, .45);
+  backdrop-filter: blur(3px);
+  animation: bdIn .2s ease;
+}
+@keyframes bdIn { from { opacity: 0; } }
+.cd-icon {
+  width: 52px; height: 52px; margin: 0 auto 10px; border-radius: 16px;
+  background: var(--pine-50); color: var(--pine-700);
+  display: grid; place-items: center;
+}
+.cd-icon svg { width: 28px; height: 28px; }
+.cd-msg { margin: 0 0 16px; font-size: 1.02rem; font-weight: 600; line-height: 1.4; }
+.cd-input { margin-bottom: 14px; text-align: left; }
+.cd-actions { display: flex; gap: 10px; }
+.cd-actions .btn { flex: 1; }
+
 /* ---------- Login ---------- */
 
 .login-hero {
