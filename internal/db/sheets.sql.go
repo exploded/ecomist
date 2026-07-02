@@ -10,12 +10,12 @@ import (
 	"database/sql"
 )
 
-const clearRunSheetSignature = `-- name: ClearRunSheetSignature :exec
-UPDATE run_sheets SET signature = '', signed_by = '', signed_at = NULL WHERE id = ?
+const clearStopSignature = `-- name: ClearStopSignature :exec
+UPDATE run_sheet_stops SET signature = '', signed_by = '', signed_at = NULL WHERE id = ?
 `
 
-func (q *Queries) ClearRunSheetSignature(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, clearRunSheetSignature, id)
+func (q *Queries) ClearStopSignature(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, clearStopSignature, id)
 	return err
 }
 
@@ -107,7 +107,7 @@ func (q *Queries) DeleteTick(ctx context.Context, arg DeleteTickParams) error {
 }
 
 const getLastRunSheet = `-- name: GetLastRunSheet :one
-SELECT id, run_id, run_date, status, created_by, created_at, completed_at, signature, signed_by, signed_at FROM run_sheets WHERE id = (SELECT MAX(id) FROM run_sheets)
+SELECT id, run_id, run_date, status, created_by, created_at, completed_at FROM run_sheets WHERE id = (SELECT MAX(id) FROM run_sheets)
 `
 
 func (q *Queries) GetLastRunSheet(ctx context.Context) (RunSheet, error) {
@@ -121,15 +121,12 @@ func (q *Queries) GetLastRunSheet(ctx context.Context) (RunSheet, error) {
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.CompletedAt,
-		&i.Signature,
-		&i.SignedBy,
-		&i.SignedAt,
 	)
 	return i, err
 }
 
 const getOpenRunSheetForRun = `-- name: GetOpenRunSheetForRun :one
-SELECT id, run_id, run_date, status, created_by, created_at, completed_at, signature, signed_by, signed_at FROM run_sheets WHERE run_id = ? AND status = 'open' ORDER BY id DESC LIMIT 1
+SELECT id, run_id, run_date, status, created_by, created_at, completed_at FROM run_sheets WHERE run_id = ? AND status = 'open' ORDER BY id DESC LIMIT 1
 `
 
 func (q *Queries) GetOpenRunSheetForRun(ctx context.Context, runID int64) (RunSheet, error) {
@@ -143,15 +140,12 @@ func (q *Queries) GetOpenRunSheetForRun(ctx context.Context, runID int64) (RunSh
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.CompletedAt,
-		&i.Signature,
-		&i.SignedBy,
-		&i.SignedAt,
 	)
 	return i, err
 }
 
 const getRunSheet = `-- name: GetRunSheet :one
-SELECT s.id, s.run_id, s.run_date, s.status, s.created_by, s.created_at, s.completed_at, s.signature, s.signed_by, s.signed_at, r.name AS run_name, r.franchise_id
+SELECT s.id, s.run_id, s.run_date, s.status, s.created_by, s.created_at, s.completed_at, r.name AS run_name, r.franchise_id
 FROM run_sheets s
 JOIN runs r ON r.id = s.run_id
 WHERE s.id = ?
@@ -165,9 +159,6 @@ type GetRunSheetRow struct {
 	CreatedBy   int64          `json:"created_by"`
 	CreatedAt   string         `json:"created_at"`
 	CompletedAt sql.NullString `json:"completed_at"`
-	Signature   string         `json:"signature"`
-	SignedBy    string         `json:"signed_by"`
-	SignedAt    sql.NullString `json:"signed_at"`
 	RunName     string         `json:"run_name"`
 	FranchiseID int64          `json:"franchise_id"`
 }
@@ -183,9 +174,6 @@ func (q *Queries) GetRunSheet(ctx context.Context, id int64) (GetRunSheetRow, er
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.CompletedAt,
-		&i.Signature,
-		&i.SignedBy,
-		&i.SignedAt,
 		&i.RunName,
 		&i.FranchiseID,
 	)
@@ -193,7 +181,7 @@ func (q *Queries) GetRunSheet(ctx context.Context, id int64) (GetRunSheetRow, er
 }
 
 const getStop = `-- name: GetStop :one
-SELECT st.id, st.run_sheet_id, st.customer_id, st.sort_order, st.status, st.note, st.completed_at, st.completed_by, c.name AS customer_name, c.address_line, c.suburb, c.phone,
+SELECT st.id, st.run_sheet_id, st.customer_id, st.sort_order, st.status, st.note, st.completed_at, st.completed_by, st.signature, st.signed_by, st.signed_at, c.name AS customer_name, c.address_line, c.suburb, c.phone,
     c.map_ref, c.access_notes, c.general_notes, c.service_minutes,
     (SELECT CAST(COALESCE(SUM(d.quantity), 0) AS INTEGER) FROM dispensers d
      WHERE d.customer_id = st.customer_id AND d.active = 1) AS total_units,
@@ -214,6 +202,9 @@ type GetStopRow struct {
 	Note           string         `json:"note"`
 	CompletedAt    sql.NullString `json:"completed_at"`
 	CompletedBy    sql.NullInt64  `json:"completed_by"`
+	Signature      string         `json:"signature"`
+	SignedBy       string         `json:"signed_by"`
+	SignedAt       sql.NullString `json:"signed_at"`
 	CustomerName   string         `json:"customer_name"`
 	AddressLine    string         `json:"address_line"`
 	Suburb         string         `json:"suburb"`
@@ -238,6 +229,9 @@ func (q *Queries) GetStop(ctx context.Context, id int64) (GetStopRow, error) {
 		&i.Note,
 		&i.CompletedAt,
 		&i.CompletedBy,
+		&i.Signature,
+		&i.SignedBy,
+		&i.SignedAt,
 		&i.CustomerName,
 		&i.AddressLine,
 		&i.Suburb,
@@ -253,7 +247,7 @@ func (q *Queries) GetStop(ctx context.Context, id int64) (GetStopRow, error) {
 }
 
 const getStopBySheetAndCustomer = `-- name: GetStopBySheetAndCustomer :one
-SELECT id, run_sheet_id, customer_id, sort_order, status, note, completed_at, completed_by FROM run_sheet_stops WHERE run_sheet_id = ? AND customer_id = ?
+SELECT id, run_sheet_id, customer_id, sort_order, status, note, completed_at, completed_by, signature, signed_by, signed_at FROM run_sheet_stops WHERE run_sheet_id = ? AND customer_id = ?
 `
 
 type GetStopBySheetAndCustomerParams struct {
@@ -273,6 +267,9 @@ func (q *Queries) GetStopBySheetAndCustomer(ctx context.Context, arg GetStopBySh
 		&i.Note,
 		&i.CompletedAt,
 		&i.CompletedBy,
+		&i.Signature,
+		&i.SignedBy,
+		&i.SignedAt,
 	)
 	return i, err
 }
@@ -376,7 +373,7 @@ func (q *Queries) GetTick(ctx context.Context, arg GetTickParams) (RunSheetTick,
 }
 
 const listOpenRunSheetsByFranchise = `-- name: ListOpenRunSheetsByFranchise :many
-SELECT s.id, s.run_id, s.run_date, s.status, s.created_by, s.created_at, s.completed_at, s.signature, s.signed_by, s.signed_at, r.name AS run_name,
+SELECT s.id, s.run_id, s.run_date, s.status, s.created_by, s.created_at, s.completed_at, r.name AS run_name,
     (SELECT COUNT(*) FROM run_sheet_stops st WHERE st.run_sheet_id = s.id) AS stop_count,
     (SELECT COUNT(*) FROM run_sheet_stops st
      WHERE st.run_sheet_id = s.id AND st.status != 'pending') AS done_count
@@ -394,9 +391,6 @@ type ListOpenRunSheetsByFranchiseRow struct {
 	CreatedBy   int64          `json:"created_by"`
 	CreatedAt   string         `json:"created_at"`
 	CompletedAt sql.NullString `json:"completed_at"`
-	Signature   string         `json:"signature"`
-	SignedBy    string         `json:"signed_by"`
-	SignedAt    sql.NullString `json:"signed_at"`
 	RunName     string         `json:"run_name"`
 	StopCount   int64          `json:"stop_count"`
 	DoneCount   int64          `json:"done_count"`
@@ -419,9 +413,6 @@ func (q *Queries) ListOpenRunSheetsByFranchise(ctx context.Context, franchiseID 
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.CompletedAt,
-			&i.Signature,
-			&i.SignedBy,
-			&i.SignedAt,
 			&i.RunName,
 			&i.StopCount,
 			&i.DoneCount,
@@ -440,7 +431,7 @@ func (q *Queries) ListOpenRunSheetsByFranchise(ctx context.Context, franchiseID 
 }
 
 const listRecentCompletedSheets = `-- name: ListRecentCompletedSheets :many
-SELECT s.id, s.run_id, s.run_date, s.status, s.created_by, s.created_at, s.completed_at, s.signature, s.signed_by, s.signed_at, r.name AS run_name,
+SELECT s.id, s.run_id, s.run_date, s.status, s.created_by, s.created_at, s.completed_at, r.name AS run_name,
     (SELECT COUNT(*) FROM run_sheet_stops st WHERE st.run_sheet_id = s.id) AS stop_count
 FROM run_sheets s
 JOIN runs r ON r.id = s.run_id
@@ -457,9 +448,6 @@ type ListRecentCompletedSheetsRow struct {
 	CreatedBy   int64          `json:"created_by"`
 	CreatedAt   string         `json:"created_at"`
 	CompletedAt sql.NullString `json:"completed_at"`
-	Signature   string         `json:"signature"`
-	SignedBy    string         `json:"signed_by"`
-	SignedAt    sql.NullString `json:"signed_at"`
 	RunName     string         `json:"run_name"`
 	StopCount   int64          `json:"stop_count"`
 }
@@ -481,9 +469,6 @@ func (q *Queries) ListRecentCompletedSheets(ctx context.Context, franchiseID int
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.CompletedAt,
-			&i.Signature,
-			&i.SignedBy,
-			&i.SignedAt,
 			&i.RunName,
 			&i.StopCount,
 		); err != nil {
@@ -595,7 +580,7 @@ func (q *Queries) ListStopDispensers(ctx context.Context, arg ListStopDispensers
 }
 
 const listStops = `-- name: ListStops :many
-SELECT st.id, st.run_sheet_id, st.customer_id, st.sort_order, st.status, st.note, st.completed_at, st.completed_by, c.name AS customer_name, c.address_line, c.suburb, c.phone,
+SELECT st.id, st.run_sheet_id, st.customer_id, st.sort_order, st.status, st.note, st.completed_at, st.completed_by, st.signature, st.signed_by, st.signed_at, c.name AS customer_name, c.address_line, c.suburb, c.phone,
     c.map_ref, c.access_notes, c.service_minutes,
     (SELECT CAST(COALESCE(SUM(d.quantity), 0) AS INTEGER) FROM dispensers d
      WHERE d.customer_id = st.customer_id AND d.active = 1) AS total_units,
@@ -617,6 +602,9 @@ type ListStopsRow struct {
 	Note           string         `json:"note"`
 	CompletedAt    sql.NullString `json:"completed_at"`
 	CompletedBy    sql.NullInt64  `json:"completed_by"`
+	Signature      string         `json:"signature"`
+	SignedBy       string         `json:"signed_by"`
+	SignedAt       sql.NullString `json:"signed_at"`
 	CustomerName   string         `json:"customer_name"`
 	AddressLine    string         `json:"address_line"`
 	Suburb         string         `json:"suburb"`
@@ -646,6 +634,9 @@ func (q *Queries) ListStops(ctx context.Context, runSheetID int64) ([]ListStopsR
 			&i.Note,
 			&i.CompletedAt,
 			&i.CompletedBy,
+			&i.Signature,
+			&i.SignedBy,
+			&i.SignedAt,
 			&i.CustomerName,
 			&i.AddressLine,
 			&i.Suburb,
@@ -689,18 +680,18 @@ func (q *Queries) ReopenStop(ctx context.Context, id int64) error {
 	return err
 }
 
-const saveRunSheetSignature = `-- name: SaveRunSheetSignature :exec
-UPDATE run_sheets SET signature = ?, signed_by = ?, signed_at = datetime('now') WHERE id = ?
+const saveStopSignature = `-- name: SaveStopSignature :exec
+UPDATE run_sheet_stops SET signature = ?, signed_by = ?, signed_at = datetime('now') WHERE id = ?
 `
 
-type SaveRunSheetSignatureParams struct {
+type SaveStopSignatureParams struct {
 	Signature string `json:"signature"`
 	SignedBy  string `json:"signed_by"`
 	ID        int64  `json:"id"`
 }
 
-func (q *Queries) SaveRunSheetSignature(ctx context.Context, arg SaveRunSheetSignatureParams) error {
-	_, err := q.db.ExecContext(ctx, saveRunSheetSignature, arg.Signature, arg.SignedBy, arg.ID)
+func (q *Queries) SaveStopSignature(ctx context.Context, arg SaveStopSignatureParams) error {
+	_, err := q.db.ExecContext(ctx, saveStopSignature, arg.Signature, arg.SignedBy, arg.ID)
 	return err
 }
 

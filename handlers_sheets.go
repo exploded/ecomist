@@ -140,60 +140,6 @@ func (a *app) sheetReopen(w http.ResponseWriter, r *http.Request) {
 	a.redirect(w, r, "/sheets/"+itoa(id))
 }
 
-// maxSignatureLen caps the stored signature data URL. A typical trimmed PNG
-// from the on-screen pad is a few KB; this leaves plenty of headroom while
-// rejecting anything absurd.
-const maxSignatureLen = 512 * 1024
-
-// sheetSign records the customer's sign-off (drawn signature + printed name).
-func (a *app) sheetSign(w http.ResponseWriter, r *http.Request) {
-	id, err := pathID(r, "id")
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	if _, err := a.sheetForCur(r, id); a.handleScopeErr(w, r, err) {
-		return
-	}
-	sig := strings.TrimSpace(r.FormValue("signature"))
-	name := strings.TrimSpace(r.FormValue("signed_by"))
-	if name == "" {
-		toast(w, "Please enter the name of the person signing", "error")
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-	if !strings.HasPrefix(sig, "data:image/png;base64,") || len(sig) > maxSignatureLen {
-		toast(w, "Please draw a signature before saving", "error")
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-	if err := a.q.SaveRunSheetSignature(r.Context(), db.SaveRunSheetSignatureParams{
-		Signature: sig, SignedBy: name, ID: id,
-	}); err != nil {
-		a.serverError(w, r, err)
-		return
-	}
-	toast(w, "Signature saved", "success")
-	a.redirect(w, r, "/sheets/"+itoa(id))
-}
-
-// sheetUnsign clears a saved signature so it can be re-captured.
-func (a *app) sheetUnsign(w http.ResponseWriter, r *http.Request) {
-	id, err := pathID(r, "id")
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	if _, err := a.sheetForCur(r, id); a.handleScopeErr(w, r, err) {
-		return
-	}
-	if err := a.q.ClearRunSheetSignature(r.Context(), id); err != nil {
-		a.serverError(w, r, err)
-		return
-	}
-	a.redirect(w, r, "/sheets/"+itoa(id))
-}
-
 // --- Stop view -----------------------------------------------------------------
 
 // StopDispenserGroup buckets a stop's dispensers under zone headings.
@@ -463,6 +409,52 @@ func (a *app) stopNote(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// maxSignatureLen caps the stored signature data URL. A typical trimmed PNG
+// from the on-screen pad is a few KB; this leaves plenty of headroom while
+// rejecting anything absurd.
+const maxSignatureLen = 512 * 1024
+
+// stopSign records the customer's sign-off for a stop (drawn signature + name).
+func (a *app) stopSign(w http.ResponseWriter, r *http.Request) {
+	stop, ok := a.stopScope(w, r)
+	if !ok {
+		return
+	}
+	sig := strings.TrimSpace(r.FormValue("signature"))
+	name := strings.TrimSpace(r.FormValue("signed_by"))
+	if name == "" {
+		toast(w, "Please enter the name of the person signing", "error")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	if !strings.HasPrefix(sig, "data:image/png;base64,") || len(sig) > maxSignatureLen {
+		toast(w, "Please draw a signature before saving", "error")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	if err := a.q.SaveStopSignature(r.Context(), db.SaveStopSignatureParams{
+		Signature: sig, SignedBy: name, ID: stop.ID,
+	}); err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	toast(w, "Signature saved", "success")
+	a.redirect(w, r, "/sheets/"+itoa(stop.RunSheetID)+"/stops/"+itoa(stop.ID))
+}
+
+// stopUnsign clears a saved signature so it can be re-captured.
+func (a *app) stopUnsign(w http.ResponseWriter, r *http.Request) {
+	stop, ok := a.stopScope(w, r)
+	if !ok {
+		return
+	}
+	if err := a.q.ClearStopSignature(r.Context(), stop.ID); err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	a.redirect(w, r, "/sheets/"+itoa(stop.RunSheetID)+"/stops/"+itoa(stop.ID))
+}
+
 // stopComplete marks a stop done or skipped with an optional note.
 func (a *app) stopComplete(w http.ResponseWriter, r *http.Request) {
 	cur := auth.FromContext(r.Context())
@@ -566,4 +558,123 @@ func (a *app) renderSheetStops(w http.ResponseWriter, r *http.Request, sheetID i
 	pd.Item = sheet
 	pd.Items = stops
 	a.renderNamed(w, r, "sheets/show", "sheets/_stops", pd)
+}
+
+// zoneReorder moves a zone up or down within the customer's zone order, then
+// re-renders the stop's dispenser list. This changes the customer's stored
+// layout, so the new order sticks for future runs too.
+func (a *app) zoneReorder(w http.ResponseWriter, r *http.Request) {
+	sheetID, err1 := pathID(r, "id")
+	stopID, err2 := pathID(r, "stopID")
+	zoneID, err3 := pathID(r, "zoneID")
+	if err1 != nil || err2 != nil || err3 != nil {
+		http.NotFound(w, r)
+		return
+	}
+	stop, sheet, err := a.stopForCur(r, sheetID, stopID)
+	if a.handleScopeErr(w, r, err) {
+		return
+	}
+	zone, err := a.zoneForCur(r, zoneID)
+	if a.handleScopeErr(w, r, err) {
+		return
+	}
+	if zone.CustomerID != stop.CustomerID {
+		a.handleScopeErr(w, r, errForbidden)
+		return
+	}
+
+	zones, err := a.q.ListZonesByCustomer(r.Context(), stop.CustomerID)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	idx := -1
+	for i, z := range zones {
+		if z.ID == zoneID {
+			idx = i
+			break
+		}
+	}
+	if swap := neighbour(idx, len(zones), r.FormValue("dir")); swap >= 0 {
+		// Renumber the whole list to keep sort_order dense, then swap.
+		zones[idx], zones[swap] = zones[swap], zones[idx]
+		for i, z := range zones {
+			if err := a.q.SetZoneSortOrder(r.Context(), db.SetZoneSortOrderParams{
+				SortOrder: int64(i + 1), ID: z.ID,
+			}); err != nil {
+				a.serverError(w, r, err)
+				return
+			}
+		}
+	}
+	a.renderStopDispensers(w, r, sheet.ID, stop.ID)
+}
+
+// dispenserReorder moves a dispenser up or down within its zone, then
+// re-renders the stop's dispenser list. Dispenser sort_order is customer-wide,
+// so we renumber the whole customer's list in display order after the swap;
+// this only ever reorders two neighbours inside the same zone.
+func (a *app) dispenserReorder(w http.ResponseWriter, r *http.Request) {
+	sheetID, err1 := pathID(r, "id")
+	stopID, err2 := pathID(r, "stopID")
+	dispID, err3 := pathID(r, "dispenserID")
+	if err1 != nil || err2 != nil || err3 != nil {
+		http.NotFound(w, r)
+		return
+	}
+	stop, sheet, err := a.stopForCur(r, sheetID, stopID)
+	if a.handleScopeErr(w, r, err) {
+		return
+	}
+	disp, err := a.dispenserForCur(r, dispID)
+	if a.handleScopeErr(w, r, err) {
+		return
+	}
+	if disp.CustomerID != stop.CustomerID {
+		a.handleScopeErr(w, r, errForbidden)
+		return
+	}
+
+	rows, err := a.q.ListDispensersByCustomer(r.Context(), stop.CustomerID)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	// Positions in the full list that share this dispenser's zone, in display order.
+	var pos []int
+	target := -1
+	for i, d := range rows {
+		if nullEq(d.ZoneID, disp.ZoneID) {
+			if d.ID == dispID {
+				target = len(pos)
+			}
+			pos = append(pos, i)
+		}
+	}
+	if swap := neighbour(target, len(pos), r.FormValue("dir")); swap >= 0 {
+		rows[pos[target]], rows[pos[swap]] = rows[pos[swap]], rows[pos[target]]
+		// Renumber the whole customer list in the new display order.
+		for i, d := range rows {
+			if err := a.q.SetDispenserSortOrder(r.Context(), db.SetDispenserSortOrderParams{
+				SortOrder: int64(i + 1), ID: d.ID,
+			}); err != nil {
+				a.serverError(w, r, err)
+				return
+			}
+		}
+	}
+	a.renderStopDispensers(w, r, sheet.ID, stop.ID)
+}
+
+// neighbour returns the index to swap with when moving item idx within a list
+// of length n in the given direction, or -1 if the move isn't possible.
+func neighbour(idx, n int, dir string) int {
+	switch {
+	case dir == "up" && idx > 0:
+		return idx - 1
+	case dir == "down" && idx >= 0 && idx < n-1:
+		return idx + 1
+	}
+	return -1
 }

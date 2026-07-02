@@ -2,6 +2,9 @@
 {{$stop := .Item}}
 {{$sheet := .Extra.Sheet}}
 <div id="stop-groups" class="section" style="margin-top:16px">
+  <datalist id="stop-zone-names">
+    {{range .Extra.Zones}}{{if .Label}}<option value="{{.Label}}">{{end}}{{end}}
+  </datalist>
   {{range .Extra.Groups}}
   <div class="zone-block">
     {{if or .ZoneLabel .ZoneArea}}
@@ -9,6 +12,16 @@
       <span class="zone-name">{{.ZoneLabel}}</span>
       {{if .ZoneArea}}<span class="zone-area">{{.ZoneArea}}</span>{{end}}
       {{if .ZoneAccessNotes}}<span class="badge badge-warn">{{.ZoneAccessNotes}}</span>{{end}}
+      {{if .ZoneID.Valid}}
+      <div class="no-print" style="margin-left:auto;display:flex;gap:2px;flex-shrink:0">
+        <button class="btn-icon" aria-label="Move zone up" style="min-width:34px;min-height:28px;padding:2px"
+          hx-post="/sheets/{{$sheet.ID}}/stops/{{$stop.ID}}/zones/{{.ZoneID.Int64}}/reorder" hx-vals='{"dir":"up"}'
+          hx-target="#stop-groups" hx-swap="outerHTML">&#9650;</button>
+        <button class="btn-icon" aria-label="Move zone down" style="min-width:34px;min-height:28px;padding:2px"
+          hx-post="/sheets/{{$sheet.ID}}/stops/{{$stop.ID}}/zones/{{.ZoneID.Int64}}/reorder" hx-vals='{"dir":"down"}'
+          hx-target="#stop-groups" hx-swap="outerHTML">&#9660;</button>
+      </div>
+      {{end}}
     </div>
     {{end}}
     {{range .Items}}
@@ -31,15 +44,11 @@
         <label>Location</label>
         <input class="input" name="location" placeholder="e.g. Staff toilet, level 1" required>
       </div>
-      {{if .Extra.Zones}}
       <div class="field">
         <label>Zone</label>
-        <select class="select" name="zone_id">
-          <option value="">No zone</option>
-          {{range .Extra.Zones}}<option value="{{.ID}}">{{.Label}}{{if .Area}} - {{.Area}}{{end}}</option>{{end}}
-        </select>
+        <input class="input" name="zone_name" list="stop-zone-names" autocomplete="off"
+          placeholder="Optional &ndash; type a name to create a zone">
       </div>
-      {{end}}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         {{template "combo" (dict "Kind" "models" "Field" "model_id" "UID" "run" "Value" "" "Display" "" "Query" "" "PatchURL" "" "TargetSel" "" "Placeholder" "Model" "Options" nil "ShowCreate" false)}}
         {{template "combo" (dict "Kind" "fragrances" "Field" "fragrance_id" "UID" "run" "Value" "" "Display" "" "Query" "" "PatchURL" "" "TargetSel" "" "Placeholder" "Fragrance" "Options" nil "ShowCreate" false)}}

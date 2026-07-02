@@ -92,6 +92,9 @@ UPDATE zones SET label = ?, area = ?, access_notes = ?, notes = ? WHERE id = ?;
 -- name: DeleteZone :exec
 DELETE FROM zones WHERE id = ?;
 
+-- name: SetZoneSortOrder :exec
+UPDATE zones SET sort_order = ? WHERE id = ?;
+
 -- Dispensers ------------------------------------------------------------
 
 -- name: ListDispensersByCustomer :many
@@ -134,3 +137,6 @@ WHERE id = ?;
 
 -- name: DeactivateDispenser :exec
 UPDATE dispensers SET active = 0 WHERE id = ?;
+
+-- name: SetDispenserSortOrder :exec
+UPDATE dispensers SET sort_order = ? WHERE id = ?;

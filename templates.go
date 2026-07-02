@@ -104,6 +104,16 @@ func templateFuncs() template.FuncMap {
 			}
 			return done * 100 / total
 		},
+		// signatureURI marks a stored signature data URL as a safe img src.
+		// html/template otherwise rewrites data: URLs to "#ZgotmplZ". The value
+		// is validated (PNG data URL) before it is ever stored, so trusting the
+		// prefix here is safe; anything else renders as an empty src.
+		"signatureURI": func(s string) template.URL {
+			if strings.HasPrefix(s, "data:image/png;base64,") {
+				return template.URL(s)
+			}
+			return template.URL("")
+		},
 	}
 }
 

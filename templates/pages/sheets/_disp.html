@@ -1,6 +1,7 @@
 {{define "sheets/_disp"}}
 {{$d := .D}}
 {{$sheetID := .SheetID}}
+{{$stopID := .StopID}}
 <div class="tick-row {{if $d.TickID.Valid}}is-ticked{{end}}" id="sd-{{$d.ID}}">
   <button class="tick-hit" hx-disabled-elt="this"
     {{if $d.TickID.Valid}}
@@ -32,5 +33,28 @@
     </div>
   </details>
   {{end}}
+  <details class="tick-note no-print">
+    <summary class="btn-icon" aria-label="Edit dispenser" title="Edit">&#9881;</summary>
+    <form class="tick-note-pop card" hx-patch="/dispensers/{{$d.ID}}"
+          hx-vals='{"rerender":"1"}' hx-target="#stop-groups" hx-swap="outerHTML" style="min-width:240px">
+      <input type="hidden" name="sheet_id" value="{{$sheetID}}">
+      <input type="hidden" name="stop_id" value="{{$stopID}}">
+      <div class="input-row">
+        <input class="input" name="seq_label" value="{{$d.SeqLabel}}" placeholder="#" style="flex:0 0 54px;text-align:center">
+        <input class="input" name="location" value="{{$d.Location}}" placeholder="Location" required style="flex:1">
+      </div>
+      <input class="input" name="zone_name" list="stop-zone-names" value="{{$d.ZoneLabel.String}}"
+        autocomplete="off" placeholder="Zone (blank = no zone)" style="margin-top:8px">
+      <button type="submit" class="btn btn-sm btn-block" style="margin-top:8px" hx-disabled-elt="this">Save</button>
+    </form>
+  </details>
+  <div class="no-print" style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+    <button class="btn-icon" aria-label="Move dispenser up" style="min-width:34px;min-height:28px;padding:2px"
+      hx-post="/sheets/{{$sheetID}}/stops/{{$stopID}}/dispensers/{{$d.ID}}/reorder" hx-vals='{"dir":"up"}'
+      hx-target="#stop-groups" hx-swap="outerHTML">&#9650;</button>
+    <button class="btn-icon" aria-label="Move dispenser down" style="min-width:34px;min-height:28px;padding:2px"
+      hx-post="/sheets/{{$sheetID}}/stops/{{$stopID}}/dispensers/{{$d.ID}}/reorder" hx-vals='{"dir":"down"}'
+      hx-target="#stop-groups" hx-swap="outerHTML">&#9660;</button>
+  </div>
 </div>
 {{end}}

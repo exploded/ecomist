@@ -66,4 +66,110 @@
   </div>
   {{end}}
 </div>
+
+<div class="section">
+  {{if $stop.Signature}}
+  <div class="card signed-off">
+    <div class="section-title">Signed off</div>
+    <img class="signed-img" src="{{signatureURI $stop.Signature}}" alt="Signature of {{$stop.SignedBy}}">
+    <div class="signed-meta">
+      <span class="signed-name">{{$stop.SignedBy}}</span>
+      {{if $stop.SignedAt.Valid}}<span class="signed-when">{{localDate $stop.SignedAt.String}} &middot; {{localTime $stop.SignedAt.String}}</span>{{end}}
+    </div>
+    <div class="sign-actions no-print">
+      <button class="btn btn-ghost btn-sm" hx-post="/stops/{{$stop.ID}}/unsign"
+        hx-disabled-elt="this" hx-confirm="Clear this signature and sign again?"
+        data-ok-label="Clear">Re-sign</button>
+    </div>
+  </div>
+  {{else}}
+  <form class="card sign-card no-print" id="sign-form"
+        hx-post="/stops/{{$stop.ID}}/sign" hx-disabled-elt="find button[type=submit]">
+    <div class="section-title">Customer sign-off</div>
+    <div class="sign-pad-wrap">
+      <canvas class="sign-pad" id="sign-pad"></canvas>
+      <div class="sign-baseline">Sign above</div>
+    </div>
+    <input type="hidden" name="signature" id="sign-data">
+    <div class="sign-name">
+      <label for="signed-by">Signed by</label>
+      <input class="input" type="text" name="signed_by" id="signed-by"
+        placeholder="Full name" autocomplete="name">
+    </div>
+    <div class="sign-actions">
+      <button type="button" class="btn-link" id="sign-clear">Clear</button>
+      <button type="submit" class="btn btn-accent">Save signature</button>
+    </div>
+  </form>
+  {{end}}
+</div>
+
+<script>
+(function () {
+  function flash(msg) {
+    document.body.dispatchEvent(new CustomEvent("showToast", { detail: { msg: msg, type: "error" } }));
+  }
+  function initSignPad() {
+    var pad = document.getElementById("sign-pad");
+    if (!pad || pad.dataset.ready) return;
+    pad.dataset.ready = "1";
+    var form = document.getElementById("sign-form");
+    var clearBtn = document.getElementById("sign-clear");
+    var ctx = pad.getContext("2d");
+    var drawing = false, dirty = false, last = null;
+
+    function fit() {
+      var rect = pad.getBoundingClientRect();
+      if (!rect.width) return;
+      var dpr = window.devicePixelRatio || 1;
+      pad.width = Math.round(rect.width * dpr);
+      pad.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "#14211d";
+      ctx.fillStyle = "#14211d";
+    }
+    fit();
+    // Refit on rotate/resize, but only while blank so we never wipe a signature.
+    window.addEventListener("resize", function () { if (!dirty) fit(); });
+
+    function at(e) {
+      var rect = pad.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+    pad.addEventListener("pointerdown", function (e) {
+      drawing = true; dirty = true; last = at(e);
+      ctx.beginPath(); ctx.arc(last.x, last.y, 1.2, 0, Math.PI * 2); ctx.fill();
+      pad.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    pad.addEventListener("pointermove", function (e) {
+      if (!drawing) return;
+      var p = at(e);
+      ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      last = p; e.preventDefault();
+    });
+    function stop() { drawing = false; }
+    pad.addEventListener("pointerup", stop);
+    pad.addEventListener("pointercancel", stop);
+
+    clearBtn.addEventListener("click", function () {
+      ctx.clearRect(0, 0, pad.width, pad.height);
+      dirty = false;
+    });
+
+    form.addEventListener("htmx:configRequest", function (e) {
+      if (!dirty) { e.preventDefault(); flash("Please draw a signature before saving"); return; }
+      if (!(document.getElementById("signed-by").value || "").trim()) {
+        e.preventDefault(); flash("Please enter the name of the person signing"); return;
+      }
+      e.detail.parameters["signature"] = pad.toDataURL("image/png");
+    });
+  }
+  if (document.readyState !== "loading") initSignPad();
+  else document.addEventListener("DOMContentLoaded", initSignPad);
+  document.body.addEventListener("htmx:load", initSignPad);
+})();
+</script>
 {{end}}

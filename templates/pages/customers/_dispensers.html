@@ -39,6 +39,10 @@
           hx-patch="/dispensers/{{.ID}}" hx-trigger="change" hx-swap="none">
         <input class="input autosave" name="location" value="{{.Location}}" placeholder="Location"
           hx-patch="/dispensers/{{.ID}}" hx-trigger="change" hx-swap="none">
+        <input class="input autosave" name="zone_name" list="zone-names" value="{{.ZoneLabel.String}}"
+          autocomplete="off" placeholder="Zone" style="flex:0 0 150px"
+          hx-patch="/dispensers/{{.ID}}" hx-vals='{"rerender":"1"}'
+          hx-target="#dispenser-section" hx-swap="outerHTML" hx-trigger="change">
         <button class="btn-icon" aria-label="Remove dispenser"
           hx-delete="/dispensers/{{.ID}}" hx-target="#dispenser-section" hx-swap="outerHTML"
           hx-confirm="Remove this dispenser?">
@@ -85,15 +89,13 @@
       <summary class="btn btn-ghost btn-sm" style="display:inline-flex">+ Add dispenser{{with .Zone}} to {{if .Label}}{{.Label}}{{else}}{{.Area}}{{end}}{{end}}</summary>
       <form class="card" hx-post="/customers/{{$c.ID}}/dispensers"
             hx-target="#dispenser-section" hx-swap="outerHTML" style="margin-top:8px">
-        {{if .Zone}}
-        <input type="hidden" name="zone_id" value="{{.Zone.ID}}">
-        {{else}}
+        <input type="hidden" name="zone_id" value="{{with .Zone}}{{.ID}}{{end}}">
         <div class="field">
           <label>Zone</label>
           <input class="input" name="zone_name" list="zone-names" autocomplete="off"
+            value="{{with .Zone}}{{.Label}}{{end}}"
             placeholder="Optional &ndash; type a name to create a zone">
         </div>
-        {{end}}
         <div class="field">
           <label>Location</label>
           <input class="input" name="location" placeholder="e.g. Foyer, near reception" required>

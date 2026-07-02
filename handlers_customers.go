@@ -496,8 +496,13 @@ func (a *app) dispenserUpdate(w http.ResponseWriter, r *http.Request) {
 	if r.PostForm.Has("quantity") {
 		d.Quantity = max(1, formInt(r, "quantity", d.Quantity))
 	}
-	if r.PostForm.Has("zone_id") {
-		d.ZoneID = formNullInt(r, "zone_id")
+	if r.PostForm.Has("zone_id") || r.PostForm.Has("zone_name") {
+		z, err := a.resolveZone(r, d.CustomerID)
+		if err != nil {
+			a.serverError(w, r, err)
+			return
+		}
+		d.ZoneID = z
 	}
 	if r.PostForm.Has("refill_size_ml") {
 		d.RefillSizeMl = formNullInt(r, "refill_size_ml")
@@ -541,6 +546,11 @@ func (a *app) dispenserUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	// Combobox-driven changes re-render the row; plain autosaves return 204.
 	if r.PostForm.Has("rerender") {
+		// Re-render in whichever context the edit happened (run sheet or editor).
+		if sheetID := formInt(r, "sheet_id", 0); sheetID != 0 {
+			a.renderStopDispensers(w, r, sheetID, formInt(r, "stop_id", 0))
+			return
+		}
 		a.renderDispenserSection(w, r, d.CustomerID)
 		return
 	}

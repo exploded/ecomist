@@ -10,6 +10,7 @@
         <div class="card-sub">
           {{if .Suburb}}{{.Suburb}} &middot; {{end}}{{.TickedUnits}}/{{.TotalUnits}} dispensers
           {{if .Note}} &middot; &#128221;{{end}}
+          {{if .SignedBy}} &middot; &#9997; Signed{{end}}
         </div>
       </a>
       {{if eq .Status "done"}}

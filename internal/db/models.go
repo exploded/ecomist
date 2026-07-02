@@ -101,9 +101,6 @@ type RunSheet struct {
 	CreatedBy   int64          `json:"created_by"`
 	CreatedAt   string         `json:"created_at"`
 	CompletedAt sql.NullString `json:"completed_at"`
-	Signature   string         `json:"signature"`
-	SignedBy    string         `json:"signed_by"`
-	SignedAt    sql.NullString `json:"signed_at"`
 }
 
 type RunSheetStop struct {
@@ -115,6 +112,9 @@ type RunSheetStop struct {
 	Note        string         `json:"note"`
 	CompletedAt sql.NullString `json:"completed_at"`
 	CompletedBy sql.NullInt64  `json:"completed_by"`
+	Signature   string         `json:"signature"`
+	SignedBy    string         `json:"signed_by"`
+	SignedAt    sql.NullString `json:"signed_at"`
 }
 
 type RunSheetTick struct {

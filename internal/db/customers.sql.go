@@ -721,6 +721,34 @@ func (q *Queries) SetCustomerSortOrder(ctx context.Context, arg SetCustomerSortO
 	return err
 }
 
+const setDispenserSortOrder = `-- name: SetDispenserSortOrder :exec
+UPDATE dispensers SET sort_order = ? WHERE id = ?
+`
+
+type SetDispenserSortOrderParams struct {
+	SortOrder int64 `json:"sort_order"`
+	ID        int64 `json:"id"`
+}
+
+func (q *Queries) SetDispenserSortOrder(ctx context.Context, arg SetDispenserSortOrderParams) error {
+	_, err := q.db.ExecContext(ctx, setDispenserSortOrder, arg.SortOrder, arg.ID)
+	return err
+}
+
+const setZoneSortOrder = `-- name: SetZoneSortOrder :exec
+UPDATE zones SET sort_order = ? WHERE id = ?
+`
+
+type SetZoneSortOrderParams struct {
+	SortOrder int64 `json:"sort_order"`
+	ID        int64 `json:"id"`
+}
+
+func (q *Queries) SetZoneSortOrder(ctx context.Context, arg SetZoneSortOrderParams) error {
+	_, err := q.db.ExecContext(ctx, setZoneSortOrder, arg.SortOrder, arg.ID)
+	return err
+}
+
 const updateContact = `-- name: UpdateContact :exec
 UPDATE contacts SET name = ?, role = ?, is_primary = ?, phone = ?, notes = ? WHERE id = ?
 `
