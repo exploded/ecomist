@@ -7,6 +7,7 @@ SELECT c.*, r.name AS run_name,
 FROM customers c
 LEFT JOIN runs r ON r.id = c.run_id
 WHERE c.franchise_id = ? AND c.active = 1
+  AND (? = '' OR c.name LIKE ? OR c.suburb LIKE ?)
 ORDER BY c.name;
 
 -- name: GetCustomer :one

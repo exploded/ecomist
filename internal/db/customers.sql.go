@@ -483,8 +483,16 @@ SELECT c.id, c.franchise_id, c.run_id, c.sort_order, c.name, c.address_line, c.s
 FROM customers c
 LEFT JOIN runs r ON r.id = c.run_id
 WHERE c.franchise_id = ? AND c.active = 1
+  AND (? = '' OR c.name LIKE ? OR c.suburb LIKE ?)
 ORDER BY c.name
 `
+
+type ListCustomersByFranchiseParams struct {
+	FranchiseID int64       `json:"franchise_id"`
+	Column2     interface{} `json:"column_2"`
+	Name        string      `json:"name"`
+	Suburb      string      `json:"suburb"`
+}
 
 type ListCustomersByFranchiseRow struct {
 	ID             int64          `json:"id"`
@@ -506,8 +514,13 @@ type ListCustomersByFranchiseRow struct {
 }
 
 // Customers -----------------------------------------------------------------
-func (q *Queries) ListCustomersByFranchise(ctx context.Context, franchiseID int64) ([]ListCustomersByFranchiseRow, error) {
-	rows, err := q.db.QueryContext(ctx, listCustomersByFranchise, franchiseID)
+func (q *Queries) ListCustomersByFranchise(ctx context.Context, arg ListCustomersByFranchiseParams) ([]ListCustomersByFranchiseRow, error) {
+	rows, err := q.db.QueryContext(ctx, listCustomersByFranchise,
+		arg.FranchiseID,
+		arg.Column2,
+		arg.Name,
+		arg.Suburb,
+	)
 	if err != nil {
 		return nil, err
 	}

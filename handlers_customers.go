@@ -12,14 +12,23 @@ import (
 
 func (a *app) customerList(w http.ResponseWriter, r *http.Request) {
 	cur := auth.FromContext(r.Context())
-	customers, err := a.q.ListCustomersByFranchise(r.Context(), cur.FranchiseID)
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	like := "%" + q + "%"
+	customers, err := a.q.ListCustomersByFranchise(r.Context(), db.ListCustomersByFranchiseParams{
+		FranchiseID: cur.FranchiseID,
+		Column2:     q,
+		Name:        like,
+		Suburb:      like,
+	})
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
 	pd := a.pageData(r, "Customers")
 	pd.Items = customers
-	a.render(w, r, "customers/list", "", pd)
+	pd.Extra["Query"] = q
+	// HTMX search-as-you-type swaps just the results list.
+	a.render(w, r, "customers/list", "customers/_list", pd)
 }
 
 func (a *app) customerCreate(w http.ResponseWriter, r *http.Request) {
