@@ -22,7 +22,7 @@
     {{end}}
     <details class="user-menu">
       <summary class="user-chip">
-        {{if .Cur.User.PictureUrl}}<img src="{{.Cur.User.PictureUrl}}" alt="" class="avatar" referrerpolicy="no-referrer">{{else}}<span class="avatar avatar-fallback">{{slice .Cur.User.Name 0 1}}</span>{{end}}
+        <span class="avatar avatar-fallback">{{if .Cur.User.Name}}{{slice .Cur.User.Name 0 1}}{{else}}?{{end}}</span>
       </summary>
       <div class="user-dropdown">
         <div class="user-dropdown-name">{{.Cur.User.Name}}</div>

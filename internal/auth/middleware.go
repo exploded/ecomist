@@ -105,17 +105,23 @@ func DevLogin(queries *db.Queries) http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
-		const devGoogleID = "dev-local-admin"
-		user, err := queries.GetUserByGoogleID(r.Context(), devGoogleID)
+		const devEmail = "dev@localhost"
+		user, err := queries.GetUserByEmail(r.Context(), devEmail)
 		if errors.Is(err, sql.ErrNoRows) {
+			// No usable password: bcrypt never matches an empty hash, so this
+			// account can only be entered through this dev-only route.
 			if err := queries.CreateUser(r.Context(), db.CreateUserParams{
-				GoogleID: devGoogleID, Email: "dev@localhost", Name: "Dev Admin", PictureUrl: "",
+				Email: devEmail, Name: "Dev Admin", PasswordHash: "",
 			}); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			user, err = queries.GetUserByGoogleID(r.Context(), devGoogleID)
+			user, err = queries.GetUserByEmail(r.Context(), devEmail)
 			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if err := queries.MarkEmailVerified(r.Context(), user.ID); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}

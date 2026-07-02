@@ -1,0 +1,23 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="login-hero">
+  <svg class="login-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <h1 class="login-title" style="font-size:1.5rem">Check your email</h1>
+  <p class="login-sub">
+    We've sent a confirmation link to<br><strong>{{.Extra.Email}}</strong><br><br>
+    Open it on this device to finish signing up.<br>The link lasts 48 hours.
+  </p>
+  {{with .Extra.DevLink}}
+  <div class="card" style="max-width:94vw;text-align:left">
+    <p class="small muted" style="margin:0 0 6px"><strong>Local dev:</strong> no mail server configured, so here's the link:</p>
+    <a href="{{.}}" class="small" style="word-break:break-all;color:var(--pine-700)">{{.}}</a>
+  </div>
+  {{end}}
+  <form method="post" action="/resend-verification" style="margin-top:12px">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="email" value="{{.Extra.Email}}">
+    <button type="submit" class="btn btn-ghost btn-sm">Send it again</button>
+  </form>
+</div>
+{{end}}

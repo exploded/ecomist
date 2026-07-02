@@ -15,17 +15,27 @@ CREATE TABLE franchises (
 );
 
 CREATE TABLE users (
-    id           INTEGER PRIMARY KEY,
-    google_id    TEXT NOT NULL UNIQUE,
-    email        TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    name         TEXT NOT NULL,
-    picture_url  TEXT NOT NULL DEFAULT '',
+    id             INTEGER PRIMARY KEY,
+    email          TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    name           TEXT NOT NULL DEFAULT '',
+    password_hash  TEXT NOT NULL,
+    -- Set once the user clicks the link in their verification email.
+    email_verified INTEGER NOT NULL DEFAULT 0,
     -- NULL franchise_id + is_admin=1 means "all franchises" (super admin).
-    franchise_id INTEGER REFERENCES franchises(id),
-    is_admin     INTEGER NOT NULL DEFAULT 0,
-    approved     INTEGER NOT NULL DEFAULT 0,
-    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+    franchise_id   INTEGER REFERENCES franchises(id),
+    is_admin       INTEGER NOT NULL DEFAULT 0,
+    approved       INTEGER NOT NULL DEFAULT 0,
+    created_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Single-use email verification links.
+CREATE TABLE email_tokens (
+    token      TEXT PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    purpose    TEXT NOT NULL DEFAULT 'verify',
+    expires_at TEXT NOT NULL
+);
+CREATE INDEX idx_email_tokens_user ON email_tokens(user_id);
 
 CREATE TABLE sessions (
     id           TEXT PRIMARY KEY,

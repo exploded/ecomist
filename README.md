@@ -11,7 +11,10 @@ paper run sheet.
 
 - **Multi-franchise** — every user belongs to a franchise; data is fully
   scoped. The admin (`ADMIN_EMAIL`) sees all franchises and can switch between
-  them. Sign-in is Google; access is via an approved-email list managed in-app.
+  them. Sign-in is email + password: registration is restricted to
+  `@ecomist.com.au` addresses (plus the admin), ownership is confirmed via an
+  emailed link, and the admin then assigns each person to a franchise (or
+  pre-approves their email so they land straight in).
 - **Master data with autosave** — customers, contacts, zones, dispensers and
   runs are edited in place; every field saves as you type (no Save buttons).
 - **Typeahead-that-creates lookups** — dispenser models and fragrances are
@@ -41,7 +44,9 @@ go build -o ecomist . && ./ecomist
 ```
 
 With `DEV_MODE=1` (only honoured when BASE_URL is localhost) the login page
-gains a "Dev login" button that signs in a local admin without Google.
+gains a "Dev login" button that signs in a local admin without a password, and
+registration shows the verification link on-screen when no SMTP server is
+configured — so the whole sign-up flow is testable offline.
 
 - Schema: `migrations/*.sql` (applied automatically at startup)
 - Queries: `queries/*.sql` → `sqlc generate` → `internal/db/`
@@ -53,9 +58,9 @@ gains a "Dev login" button that signs in a local admin without Google.
 |---|---|
 | `PORT` / `LISTEN_ADDR` | Listen port (default 8995, bound to 127.0.0.1) |
 | `DB_PATH` | SQLite file (default `ecomist.db`) |
-| `BASE_URL` | Public URL, used for OAuth redirects |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth client |
-| `ADMIN_EMAIL` | This Google account becomes the cross-franchise admin |
+| `BASE_URL` | Public URL, used in emailed verification links |
+| `ADMIN_EMAIL` | This email becomes the cross-franchise admin on registration |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `EMAIL_FROM` | Outbound email for verification links (e.g. Gmail app password, port 587) |
 | `ANTHROPIC_API_KEY` | Enables PDF import (feature hides itself when blank) |
 | `TZ` | Display timezone (default `Australia/Melbourne`) |
 | `DEV_MODE` | `1` enables local dev login (localhost only) |

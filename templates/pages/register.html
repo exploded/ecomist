@@ -1,0 +1,37 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="login-hero" style="min-height:auto;padding-top:5vh">
+  <svg class="login-mark" viewBox="0 0 24 24" aria-hidden="true" style="width:56px;height:56px"><path d="M12 2C8 7.5 5 10.6 5 14.5A7 7 0 0 0 19 14.5C19 10.6 16 7.5 12 2Z" fill="currentColor" opacity=".92"/><circle cx="12" cy="15" r="2.6" fill="#f7faf9"/></svg>
+  <h1 class="login-title" style="font-size:1.5rem">Create your account</h1>
+  <p class="login-sub">Use your <strong>@{{.Extra.Domain}}</strong> email address.<br>We'll send a link to confirm it's yours.</p>
+
+  <form method="post" action="/register" class="card" style="width:min(94vw,380px);text-align:left">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    {{with .Extra.Error}}
+    <div class="access-note" style="background:var(--red-soft);border-color:#e8b5b1;margin-top:0">
+      <span>{{.}}</span>
+    </div>
+    {{end}}
+    <div class="field">
+      <label>Your name</label>
+      <input class="input" type="text" name="name" value="{{.Extra.Name}}" placeholder="Jane Smith"
+             autocomplete="name" required autofocus>
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input class="input" type="email" name="email" value="{{.Extra.Email}}" placeholder="jane@{{.Extra.Domain}}"
+             autocomplete="email" required>
+    </div>
+    <div class="field">
+      <label>Password <span class="muted" style="text-transform:none;letter-spacing:0">(8+ characters)</span></label>
+      <input class="input" type="password" name="password" autocomplete="new-password" minlength="8" required>
+    </div>
+    <button type="submit" class="btn btn-block">Create account</button>
+  </form>
+
+  <p class="small muted" style="margin-top:14px">
+    Already registered? <a href="/login" style="color:var(--pine-700);font-weight:650">Sign in</a>
+  </p>
+</div>
+{{end}}

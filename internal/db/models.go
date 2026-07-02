@@ -63,6 +63,13 @@ type DispenserModel struct {
 	Active int64  `json:"active"`
 }
 
+type EmailToken struct {
+	Token     string `json:"token"`
+	UserID    int64  `json:"user_id"`
+	Purpose   string `json:"purpose"`
+	ExpiresAt string `json:"expires_at"`
+}
+
 type Fragrance struct {
 	ID            int64         `json:"id"`
 	Name          string        `json:"name"`
@@ -124,15 +131,15 @@ type Session struct {
 }
 
 type User struct {
-	ID          int64         `json:"id"`
-	GoogleID    string        `json:"google_id"`
-	Email       string        `json:"email"`
-	Name        string        `json:"name"`
-	PictureUrl  string        `json:"picture_url"`
-	FranchiseID sql.NullInt64 `json:"franchise_id"`
-	IsAdmin     int64         `json:"is_admin"`
-	Approved    int64         `json:"approved"`
-	CreatedAt   string        `json:"created_at"`
+	ID            int64         `json:"id"`
+	Email         string        `json:"email"`
+	Name          string        `json:"name"`
+	PasswordHash  string        `json:"password_hash"`
+	EmailVerified int64         `json:"email_verified"`
+	FranchiseID   sql.NullInt64 `json:"franchise_id"`
+	IsAdmin       int64         `json:"is_admin"`
+	Approved      int64         `json:"approved"`
+	CreatedAt     string        `json:"created_at"`
 }
 
 type Zone struct {

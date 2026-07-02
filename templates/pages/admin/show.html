@@ -23,7 +23,7 @@
 
 <div class="section">
   <p class="section-title">Approved sign-ins</p>
-  <p class="small muted" style="margin:0 2px 8px">Anyone on this list gets straight in with their Google account, into the franchise shown.</p>
+  <p class="small muted" style="margin:0 2px 8px">Anyone on this list is approved automatically once they confirm their email, straight into the franchise shown.</p>
   <div class="table-card">
     {{range .Extra.Approved}}
     <div class="trow">
@@ -53,6 +53,9 @@
         <div style="font-weight:600">{{.Name}}</div>
         <div class="small muted">{{.Email}}</div>
       </div>
+      {{if eq .EmailVerified 0}}
+      <span class="badge badge-warn" title="Hasn't clicked the confirmation link yet">Email unconfirmed</span>
+      {{end}}
       {{if eq .IsAdmin 1}}
       <span class="badge badge-pine">Admin - all franchises</span>
       {{else if eq .Approved 1}}

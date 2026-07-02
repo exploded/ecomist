@@ -1,16 +1,19 @@
 -- Users -----------------------------------------------------------------
 
--- name: GetUserByGoogleID :one
-SELECT * FROM users WHERE google_id = ?;
+-- name: GetUserByEmail :one
+SELECT * FROM users WHERE email = ?;
 
 -- name: GetUserByID :one
 SELECT * FROM users WHERE id = ?;
 
 -- name: CreateUser :exec
-INSERT INTO users (google_id, email, name, picture_url) VALUES (?, ?, ?, ?);
+INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?);
 
--- name: UpdateUserProfile :exec
-UPDATE users SET name = ?, picture_url = ? WHERE id = ?;
+-- name: UpdateUserPassword :exec
+UPDATE users SET password_hash = ? WHERE id = ?;
+
+-- name: MarkEmailVerified :exec
+UPDATE users SET email_verified = 1 WHERE id = ?;
 
 -- name: ApproveUser :exec
 UPDATE users SET approved = 1, franchise_id = ? WHERE id = ?;
@@ -29,6 +32,17 @@ ORDER BY u.approved DESC, u.name;
 
 -- name: DeleteUser :exec
 DELETE FROM users WHERE id = ?;
+
+-- Email verification tokens ----------------------------------------------
+
+-- name: CreateEmailToken :exec
+INSERT INTO email_tokens (token, user_id, purpose, expires_at) VALUES (?, ?, ?, ?);
+
+-- name: GetEmailToken :one
+SELECT * FROM email_tokens WHERE token = ? AND expires_at > datetime('now');
+
+-- name: DeleteEmailTokensForUser :exec
+DELETE FROM email_tokens WHERE user_id = ?;
 
 -- Sessions --------------------------------------------------------------
 

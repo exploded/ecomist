@@ -80,8 +80,11 @@ func (a *app) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", http.StripPrefix("/static/", staticHandler()))
 	mux.HandleFunc("GET /login", a.loginPage)
-	mux.HandleFunc("GET /auth/google/login", auth.HandleLogin)
-	mux.Handle("GET /auth/google/callback", auth.HandleCallback(a.q))
+	mux.HandleFunc("POST /login", a.loginSubmit)
+	mux.HandleFunc("GET /register", a.registerPage)
+	mux.HandleFunc("POST /register", a.registerSubmit)
+	mux.HandleFunc("GET /verify", a.verifyEmail)
+	mux.HandleFunc("POST /resend-verification", a.resendVerification)
 	mux.Handle("POST /logout", auth.HandleLogout(a.q))
 	if auth.DevMode() {
 		mux.Handle("GET /dev/login", auth.DevLogin(a.q))
@@ -89,7 +92,6 @@ func (a *app) routes() http.Handler {
 	mux.Handle("/", protected)
 
 	csrf := nosurf.New(mux)
-	csrf.ExemptPath("/auth/google/callback")
 	csrf.SetFailureHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("csrf failure", "reason", nosurf.Reason(r), "path", r.URL.Path)
 		http.Error(w, "Security check failed - please refresh the page and try again", http.StatusBadRequest)

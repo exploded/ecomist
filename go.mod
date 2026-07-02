@@ -3,14 +3,13 @@ module github.com/exploded/ecomist
 go 1.26
 
 require (
+	github.com/anthropics/anthropic-sdk-go v1.55.1
 	github.com/justinas/nosurf v1.2.0
-	golang.org/x/oauth2 v0.36.0
+	golang.org/x/crypto v0.53.0
 	modernc.org/sqlite v1.53.0
 )
 
 require (
-	cloud.google.com/go/compute/metadata v0.5.0 // indirect
-	github.com/anthropics/anthropic-sdk-go v1.55.1 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -27,7 +26,7 @@ require (
 	github.com/tidwall/sjson v1.2.5 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.44.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
 	modernc.org/libc v1.73.4 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect

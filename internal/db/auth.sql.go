@@ -39,6 +39,29 @@ func (q *Queries) CreateApprovedEmail(ctx context.Context, arg CreateApprovedEma
 	return err
 }
 
+const createEmailToken = `-- name: CreateEmailToken :exec
+
+INSERT INTO email_tokens (token, user_id, purpose, expires_at) VALUES (?, ?, ?, ?)
+`
+
+type CreateEmailTokenParams struct {
+	Token     string `json:"token"`
+	UserID    int64  `json:"user_id"`
+	Purpose   string `json:"purpose"`
+	ExpiresAt string `json:"expires_at"`
+}
+
+// Email verification tokens ----------------------------------------------
+func (q *Queries) CreateEmailToken(ctx context.Context, arg CreateEmailTokenParams) error {
+	_, err := q.db.ExecContext(ctx, createEmailToken,
+		arg.Token,
+		arg.UserID,
+		arg.Purpose,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
 const createFranchise = `-- name: CreateFranchise :exec
 INSERT INTO franchises (name) VALUES (?)
 `
@@ -72,23 +95,17 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) er
 }
 
 const createUser = `-- name: CreateUser :exec
-INSERT INTO users (google_id, email, name, picture_url) VALUES (?, ?, ?, ?)
+INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)
 `
 
 type CreateUserParams struct {
-	GoogleID   string `json:"google_id"`
-	Email      string `json:"email"`
-	Name       string `json:"name"`
-	PictureUrl string `json:"picture_url"`
+	Email        string `json:"email"`
+	Name         string `json:"name"`
+	PasswordHash string `json:"password_hash"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
-	_, err := q.db.ExecContext(ctx, createUser,
-		arg.GoogleID,
-		arg.Email,
-		arg.Name,
-		arg.PictureUrl,
-	)
+	_, err := q.db.ExecContext(ctx, createUser, arg.Email, arg.Name, arg.PasswordHash)
 	return err
 }
 
@@ -98,6 +115,15 @@ DELETE FROM approved_emails WHERE email = ?
 
 func (q *Queries) DeleteApprovedEmail(ctx context.Context, email string) error {
 	_, err := q.db.ExecContext(ctx, deleteApprovedEmail, email)
+	return err
+}
+
+const deleteEmailTokensForUser = `-- name: DeleteEmailTokensForUser :exec
+DELETE FROM email_tokens WHERE user_id = ?
+`
+
+func (q *Queries) DeleteEmailTokensForUser(ctx context.Context, userID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteEmailTokensForUser, userID)
 	return err
 }
 
@@ -138,6 +164,22 @@ func (q *Queries) GetApprovedEmail(ctx context.Context, email string) (ApprovedE
 	row := q.db.QueryRowContext(ctx, getApprovedEmail, email)
 	var i ApprovedEmail
 	err := row.Scan(&i.Email, &i.FranchiseID)
+	return i, err
+}
+
+const getEmailToken = `-- name: GetEmailToken :one
+SELECT token, user_id, purpose, expires_at FROM email_tokens WHERE token = ? AND expires_at > datetime('now')
+`
+
+func (q *Queries) GetEmailToken(ctx context.Context, token string) (EmailToken, error) {
+	row := q.db.QueryRowContext(ctx, getEmailToken, token)
+	var i EmailToken
+	err := row.Scan(
+		&i.Token,
+		&i.UserID,
+		&i.Purpose,
+		&i.ExpiresAt,
+	)
 	return i, err
 }
 
@@ -207,21 +249,21 @@ func (q *Queries) GetSession(ctx context.Context, id string) (Session, error) {
 	return i, err
 }
 
-const getUserByGoogleID = `-- name: GetUserByGoogleID :one
+const getUserByEmail = `-- name: GetUserByEmail :one
 
-SELECT id, google_id, email, name, picture_url, franchise_id, is_admin, approved, created_at FROM users WHERE google_id = ?
+SELECT id, email, name, password_hash, email_verified, franchise_id, is_admin, approved, created_at FROM users WHERE email = ?
 `
 
 // Users -----------------------------------------------------------------
-func (q *Queries) GetUserByGoogleID(ctx context.Context, googleID string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByGoogleID, googleID)
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.GoogleID,
 		&i.Email,
 		&i.Name,
-		&i.PictureUrl,
+		&i.PasswordHash,
+		&i.EmailVerified,
 		&i.FranchiseID,
 		&i.IsAdmin,
 		&i.Approved,
@@ -231,7 +273,7 @@ func (q *Queries) GetUserByGoogleID(ctx context.Context, googleID string) (User,
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, google_id, email, name, picture_url, franchise_id, is_admin, approved, created_at FROM users WHERE id = ?
+SELECT id, email, name, password_hash, email_verified, franchise_id, is_admin, approved, created_at FROM users WHERE id = ?
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
@@ -239,10 +281,10 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.GoogleID,
 		&i.Email,
 		&i.Name,
-		&i.PictureUrl,
+		&i.PasswordHash,
+		&i.EmailVerified,
 		&i.FranchiseID,
 		&i.IsAdmin,
 		&i.Approved,
@@ -320,7 +362,7 @@ func (q *Queries) ListFranchises(ctx context.Context) ([]Franchise, error) {
 }
 
 const listPendingUsers = `-- name: ListPendingUsers :many
-SELECT id, google_id, email, name, picture_url, franchise_id, is_admin, approved, created_at FROM users WHERE approved = 0 ORDER BY created_at DESC
+SELECT id, email, name, password_hash, email_verified, franchise_id, is_admin, approved, created_at FROM users WHERE approved = 0 ORDER BY created_at DESC
 `
 
 func (q *Queries) ListPendingUsers(ctx context.Context) ([]User, error) {
@@ -334,10 +376,10 @@ func (q *Queries) ListPendingUsers(ctx context.Context) ([]User, error) {
 		var i User
 		if err := rows.Scan(
 			&i.ID,
-			&i.GoogleID,
 			&i.Email,
 			&i.Name,
-			&i.PictureUrl,
+			&i.PasswordHash,
+			&i.EmailVerified,
 			&i.FranchiseID,
 			&i.IsAdmin,
 			&i.Approved,
@@ -357,7 +399,7 @@ func (q *Queries) ListPendingUsers(ctx context.Context) ([]User, error) {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT u.id, u.google_id, u.email, u.name, u.picture_url, u.franchise_id, u.is_admin, u.approved, u.created_at, f.name AS franchise_name
+SELECT u.id, u.email, u.name, u.password_hash, u.email_verified, u.franchise_id, u.is_admin, u.approved, u.created_at, f.name AS franchise_name
 FROM users u
 LEFT JOIN franchises f ON f.id = u.franchise_id
 ORDER BY u.approved DESC, u.name
@@ -365,10 +407,10 @@ ORDER BY u.approved DESC, u.name
 
 type ListUsersRow struct {
 	ID            int64          `json:"id"`
-	GoogleID      string         `json:"google_id"`
 	Email         string         `json:"email"`
 	Name          string         `json:"name"`
-	PictureUrl    string         `json:"picture_url"`
+	PasswordHash  string         `json:"password_hash"`
+	EmailVerified int64          `json:"email_verified"`
 	FranchiseID   sql.NullInt64  `json:"franchise_id"`
 	IsAdmin       int64          `json:"is_admin"`
 	Approved      int64          `json:"approved"`
@@ -387,10 +429,10 @@ func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 		var i ListUsersRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.GoogleID,
 			&i.Email,
 			&i.Name,
-			&i.PictureUrl,
+			&i.PasswordHash,
+			&i.EmailVerified,
 			&i.FranchiseID,
 			&i.IsAdmin,
 			&i.Approved,
@@ -416,6 +458,15 @@ UPDATE users SET is_admin = 1, approved = 1, franchise_id = NULL WHERE id = ?
 
 func (q *Queries) MakeUserAdmin(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, makeUserAdmin, id)
+	return err
+}
+
+const markEmailVerified = `-- name: MarkEmailVerified :exec
+UPDATE users SET email_verified = 1 WHERE id = ?
+`
+
+func (q *Queries) MarkEmailVerified(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, markEmailVerified, id)
 	return err
 }
 
@@ -447,17 +498,16 @@ func (q *Queries) UpdateFranchiseName(ctx context.Context, arg UpdateFranchiseNa
 	return err
 }
 
-const updateUserProfile = `-- name: UpdateUserProfile :exec
-UPDATE users SET name = ?, picture_url = ? WHERE id = ?
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE users SET password_hash = ? WHERE id = ?
 `
 
-type UpdateUserProfileParams struct {
-	Name       string `json:"name"`
-	PictureUrl string `json:"picture_url"`
-	ID         int64  `json:"id"`
+type UpdateUserPasswordParams struct {
+	PasswordHash string `json:"password_hash"`
+	ID           int64  `json:"id"`
 }
 
-func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserProfile, arg.Name, arg.PictureUrl, arg.ID)
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.PasswordHash, arg.ID)
 	return err
 }

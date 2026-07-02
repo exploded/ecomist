@@ -16,7 +16,7 @@
 #   1. Add DNS A + AAAA records ecomist.mchugh.au -> this server (DNS-only)
 #   2. Add a site block to /etc/caddy/Caddyfile proxying to 127.0.0.1:8995
 #      and run: sudo systemctl reload caddy
-#   3. Edit /var/www/ecomist/.env with real Google OAuth + Anthropic values
+#   3. Edit /var/www/ecomist/.env with real SMTP + Anthropic values
 #   4. systemctl enable --now ecomist
 
 set -e
@@ -49,13 +49,15 @@ DB_PATH=ecomist.db
 BASE_URL=https://ecomist.mchugh.au
 TZ=Australia/Melbourne
 
-# --- Google OAuth (create a client at console.cloud.google.com; redirect URI
-#     must be https://ecomist.mchugh.au/auth/google/callback) ---
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-
-# --- The cross-franchise administrator ---
+# --- The cross-franchise administrator (registers like anyone else) ---
 ADMIN_EMAIL=james67@gmail.com
+
+# --- Outbound email for verification links (e.g. Gmail app password) ---
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+EMAIL_FROM=
 
 # --- PDF run-sheet import (optional; feature hides itself when blank) ---
 ANTHROPIC_API_KEY=
@@ -143,7 +145,7 @@ echo "Next manual steps:"
 echo "  1. DNS: point ecomist.mchugh.au A + AAAA records at this server (DNS-only)"
 echo "  2. Add the Caddy block above to /etc/caddy/Caddyfile, then:"
 echo "     sudo systemctl reload caddy"
-echo "  3. Edit $ENV_FILE with the Google OAuth client + ANTHROPIC_API_KEY"
+echo "  3. Edit $ENV_FILE with SMTP credentials + ANTHROPIC_API_KEY"
 echo "  4. systemctl enable --now ecomist"
 echo ""
 echo "GitHub Actions secrets needed on exploded/ecomist:"
