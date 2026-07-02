@@ -12,17 +12,15 @@
       <span class="zone-name print-only">{{.ZoneLabel}}</span>
       {{if .ZoneArea}}<span class="zone-area print-only">{{.ZoneArea}}</span>{{end}}
       {{if .ZoneAccessNotes}}<span class="badge badge-warn print-only">{{.ZoneAccessNotes}}</span>{{end}}
-      <div class="input-row no-print" style="flex:1;min-width:0;flex-wrap:wrap">
-        <input class="input autosave" name="label" value="{{.ZoneLabel}}" placeholder="Zone"
-          style="flex:1 1 110px;min-width:100px;font-weight:700"
+      <div class="zone-edit no-print">
+        <input class="input autosave label-fld" name="label" value="{{.ZoneLabel}}" placeholder="Zone"
+          style="font-weight:700"
           hx-patch="/zones/{{.ZoneID.Int64}}" hx-trigger="change" hx-swap="none">
-        <input class="input autosave" name="area" value="{{.ZoneArea}}" placeholder="Area"
-          style="flex:1.4 1 140px;min-width:120px"
+        <input class="input autosave area-fld" name="area" value="{{.ZoneArea}}" placeholder="Area"
           hx-patch="/zones/{{.ZoneID.Int64}}" hx-trigger="change" hx-swap="none">
-        <input class="input autosave" name="access_notes" value="{{.ZoneAccessNotes}}" placeholder="Access / door code"
-          style="flex:1 1 140px;min-width:120px"
+        <input class="input autosave acc-fld" name="access_notes" value="{{.ZoneAccessNotes}}" placeholder="Access / door code"
           hx-patch="/zones/{{.ZoneID.Int64}}" hx-trigger="change" hx-swap="none">
-        <div style="display:flex;gap:2px;flex-shrink:0;margin-left:auto">
+        <div class="zone-arrows">
           <button class="btn-icon" aria-label="Move zone up" style="min-width:34px;min-height:28px;padding:2px"
             hx-post="/sheets/{{$sheet.ID}}/stops/{{$stop.ID}}/zones/{{.ZoneID.Int64}}/reorder" hx-vals='{"dir":"up"}'
             hx-target="#stop-groups" hx-swap="outerHTML">&#9650;</button>

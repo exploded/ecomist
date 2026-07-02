@@ -355,6 +355,21 @@ textarea.input { resize: vertical; min-height: 70px; }
 .zone-name { font-weight: 750; font-size: .95rem; color: var(--pine-800); }
 .zone-area { color: var(--mist-600); font-size: .85rem; }
 
+/* Inline zone editor in the run-sheet stop view. Mobile-first: stacked so the
+   name/area/access fields never overflow (they shrink to the card width); a
+   single row on wider screens. */
+.zone-edit { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 6px; }
+.zone-edit .input { width: 100%; min-width: 0; }
+.zone-edit .zone-arrows { display: flex; gap: 2px; flex-shrink: 0; align-self: flex-end; }
+@media (min-width: 700px) {
+  .zone-edit { flex-direction: row; align-items: center; gap: 8px; }
+  .zone-edit .input { width: auto; }
+  .zone-edit .label-fld { flex: 0 0 130px; }
+  .zone-edit .area-fld  { flex: 1.4 1 0; }
+  .zone-edit .acc-fld   { flex: 1 1 0; }
+  .zone-edit .zone-arrows { margin-left: auto; align-self: center; }
+}
+
 .tick-row {
   display: flex; align-items: center; gap: 2px;
   background: var(--card); border-radius: var(--radius);
