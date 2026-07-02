@@ -63,10 +63,18 @@ type Dispenser struct {
 // Enabled reports whether the import feature can run (API key configured).
 func Enabled() bool { return os.Getenv("ANTHROPIC_API_KEY") != "" }
 
+// Note: this deliberately does NOT use the structured-outputs output_config.
+// With output_config.format set, Opus returns a schema-valid but EMPTY
+// extraction for these sheets (customers: []); with the schema written into
+// the prompt instead it transcribes everything faithfully.
 const extractPrompt = `This PDF is a pest-control/air-freshener service "run sheet" exported from ACT! CRM by Ecomist. It lists customer sites to visit, each with contacts, access notes, optional ZONE groupings, and numbered dispenser lines like:
 "1. Foyer Area, around from Reception. Eco MAXI x 1. O/N/See Below650ml x 1. (70 Days) - 2580"
 
-Extract ALL of it into the JSON schema. Rules:
+Extract ALL of it and return ONLY a JSON object matching this schema (no prose, no code fences):
+
+{"run_name": string, "customers": [{"name": string, "address_line": string, "suburb": string, "phone": string, "map_ref": string, "service_minutes": integer, "access_notes": string, "general_notes": string, "contacts": [{"name": string, "role": string, "is_primary": boolean, "phone": string}], "zones": [{"label": string, "area": string, "access_notes": string}], "dispensers": [{"zone_label": string, "seq_label": string, "location": string, "model": string, "quantity": integer, "fragrance": string, "fragrance_note": string, "refill_size_ml": integer, "service_interval_days": integer, "notes": string}]}]}
+
+Rules:
 - run_name: from the document title or window/header; if absent, invent a short sensible name from the suburb(s).
 - One customers[] entry per company block (blocks are separated by sign-off sections with "Contact Name:.... Client Signature:....").
 - suburb: the locality in CAPS from the address; address_line is the street part only.
@@ -77,82 +85,6 @@ Extract ALL of it into the JSON schema. Rules:
 - dispensers: one entry per numbered line. zone_label must exactly match a zones[].label (or "" if the site has no zones). seq_label keeps the printed number/range ("1", "9 - 10"). quantity is the unit count on the line (ranges like "9 - 10 ... x 2" mean 2). model is the cleaned device name ("Eco Maxi", "Eco Midi", "Eco Midi Pro", "Eco Pro C", "Eco 6"). fragrance is the name after O/N/ with the trailing size removed ("Brandon", "Baby Talc", "NIK"); when the sheet says "See Below" or "Various", leave fragrance empty and put that text in fragrance_note. refill_size_ml from "650ml" (0 if absent). service_interval_days from "(70 Days)" (0 if absent). notes gets operating hours, "Cont 1"-style settings, and per-line door codes.
 - Use 0 for unknown numbers and "" for unknown strings. service_minutes defaults to 15 when the sheet shows "15 minutes".
 - Do not invent data; transcribe faithfully.`
-
-var extractSchema = map[string]any{
-	"type":                 "object",
-	"additionalProperties": false,
-	"required":             []string{"run_name", "customers"},
-	"properties": map[string]any{
-		"run_name": map[string]any{"type": "string"},
-		"customers": map[string]any{
-			"type": "array",
-			"items": map[string]any{
-				"type":                 "object",
-				"additionalProperties": false,
-				"required": []string{"name", "address_line", "suburb", "phone", "map_ref",
-					"service_minutes", "access_notes", "general_notes", "contacts", "zones", "dispensers"},
-				"properties": map[string]any{
-					"name":            map[string]any{"type": "string"},
-					"address_line":    map[string]any{"type": "string"},
-					"suburb":          map[string]any{"type": "string"},
-					"phone":           map[string]any{"type": "string"},
-					"map_ref":         map[string]any{"type": "string"},
-					"service_minutes": map[string]any{"type": "integer"},
-					"access_notes":    map[string]any{"type": "string"},
-					"general_notes":   map[string]any{"type": "string"},
-					"contacts": map[string]any{
-						"type": "array",
-						"items": map[string]any{
-							"type":                 "object",
-							"additionalProperties": false,
-							"required":             []string{"name", "role", "is_primary", "phone"},
-							"properties": map[string]any{
-								"name":       map[string]any{"type": "string"},
-								"role":       map[string]any{"type": "string"},
-								"is_primary": map[string]any{"type": "boolean"},
-								"phone":      map[string]any{"type": "string"},
-							},
-						},
-					},
-					"zones": map[string]any{
-						"type": "array",
-						"items": map[string]any{
-							"type":                 "object",
-							"additionalProperties": false,
-							"required":             []string{"label", "area", "access_notes"},
-							"properties": map[string]any{
-								"label":        map[string]any{"type": "string"},
-								"area":         map[string]any{"type": "string"},
-								"access_notes": map[string]any{"type": "string"},
-							},
-						},
-					},
-					"dispensers": map[string]any{
-						"type": "array",
-						"items": map[string]any{
-							"type":                 "object",
-							"additionalProperties": false,
-							"required": []string{"zone_label", "seq_label", "location", "model", "quantity",
-								"fragrance", "fragrance_note", "refill_size_ml", "service_interval_days", "notes"},
-							"properties": map[string]any{
-								"zone_label":            map[string]any{"type": "string"},
-								"seq_label":             map[string]any{"type": "string"},
-								"location":              map[string]any{"type": "string"},
-								"model":                 map[string]any{"type": "string"},
-								"quantity":              map[string]any{"type": "integer"},
-								"fragrance":             map[string]any{"type": "string"},
-								"fragrance_note":        map[string]any{"type": "string"},
-								"refill_size_ml":        map[string]any{"type": "integer"},
-								"service_interval_days": map[string]any{"type": "integer"},
-								"notes":                 map[string]any{"type": "string"},
-							},
-						},
-					},
-				},
-			},
-		},
-	},
-}
 
 // Extract sends the PDF to Claude and returns the parsed run-sheet data.
 func Extract(ctx context.Context, pdf []byte) (*Data, error) {
@@ -167,9 +99,6 @@ func Extract(ctx context.Context, pdf []byte) (*Data, error) {
 		Model:     anthropic.ModelClaudeOpus4_8,
 		MaxTokens: 64000,
 		Thinking:  anthropic.ThinkingConfigParamUnion{OfAdaptive: &adaptive},
-		OutputConfig: anthropic.OutputConfigParam{
-			Format: anthropic.JSONOutputFormatParam{Schema: extractSchema},
-		},
 		Messages: []anthropic.MessageParam{
 			anthropic.NewUserMessage(
 				anthropic.NewDocumentBlock(anthropic.Base64PDFSourceParam{Data: b64}),
@@ -199,12 +128,25 @@ func Extract(ctx context.Context, pdf []byte) (*Data, error) {
 			text.WriteString(b.Text)
 		}
 	}
+	// Tolerate code fences or prose around the JSON object.
+	raw := text.String()
+	start, end := strings.Index(raw, "{"), strings.LastIndex(raw, "}")
+	if start < 0 || end <= start {
+		return nil, fmt.Errorf("no JSON found in the extraction response")
+	}
 	var data Data
-	if err := json.Unmarshal([]byte(text.String()), &data); err != nil {
+	if err := json.Unmarshal([]byte(raw[start:end+1]), &data); err != nil {
 		return nil, fmt.Errorf("parse extraction: %w", err)
 	}
 	if len(data.Customers) == 0 {
 		return nil, fmt.Errorf("no customers found in the PDF - is it a run sheet?")
+	}
+	var lines int
+	for _, c := range data.Customers {
+		lines += len(c.Dispensers)
+	}
+	if lines == 0 {
+		return nil, fmt.Errorf("no dispenser lines found in the PDF - is it a run sheet?")
 	}
 	return &data, nil
 }
