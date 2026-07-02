@@ -26,11 +26,23 @@ var pendingImports = struct {
 func (a *app) importShow(w http.ResponseWriter, r *http.Request) {
 	pd := a.pageData(r, "Import a run sheet")
 	pd.Extra["Enabled"] = importer.Enabled()
+	if auth.FromContext(r.Context()).FranchiseID == 0 {
+		pd.Extra["Error"] = noFranchiseMsg
+	}
 	a.render(w, r, "import/upload", "", pd)
 }
 
+// noFranchiseMsg is shown when an admin with no franchise selected tries to
+// create franchise-scoped data. Their effective FranchiseID is 0, which has no
+// matching franchises row, so the write would fail its foreign key.
+const noFranchiseMsg = "Select a franchise from the top-right menu first - imports are saved into a specific franchise."
+
 // importUpload receives the PDF, extracts it with Claude, and shows a preview.
 func (a *app) importUpload(w http.ResponseWriter, r *http.Request) {
+	if auth.FromContext(r.Context()).FranchiseID == 0 {
+		a.importError(w, r, noFranchiseMsg)
+		return
+	}
 	if err := r.ParseMultipartForm(40 << 20); err != nil {
 		a.importError(w, r, "That file is too large (40 MB max).")
 		return
@@ -93,6 +105,10 @@ func importTotals(d *importer.Data) int64 {
 // importConfirm inserts the previewed data into the current franchise.
 func (a *app) importConfirm(w http.ResponseWriter, r *http.Request) {
 	cur := auth.FromContext(r.Context())
+	if cur.FranchiseID == 0 {
+		a.importError(w, r, noFranchiseMsg)
+		return
+	}
 	token := r.FormValue("token")
 	pendingImports.Lock()
 	data := pendingImports.m[token]

@@ -22,6 +22,11 @@ func (a *app) runList(w http.ResponseWriter, r *http.Request) {
 
 func (a *app) runCreate(w http.ResponseWriter, r *http.Request) {
 	cur := auth.FromContext(r.Context())
+	if cur.FranchiseID == 0 {
+		toast(w, noFranchiseMsg, "error")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
 		toast(w, "Please enter a run name", "error")
