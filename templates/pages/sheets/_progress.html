@@ -1,0 +1,11 @@
+{{define "sheets/_progress"}}
+{{$stop := .Item}}
+<div id="stop-progress" class="progress-wrap" {{if .Extra.OOB}}hx-swap-oob="outerHTML"{{end}}>
+  <div class="progress-track"><div class="progress-fill" style="width:{{pct $stop.TickedUnits $stop.TotalUnits}}%"></div></div>
+  <div class="progress-label">
+    {{$stop.TickedUnits}} of {{$stop.TotalUnits}} dispensers done
+    {{if eq $stop.Status "done"}}<span class="badge badge-ok">Stop done</span>{{end}}
+    {{if eq $stop.Status "skipped"}}<span class="badge badge-skip">Skipped</span>{{end}}
+  </div>
+</div>
+{{end}}

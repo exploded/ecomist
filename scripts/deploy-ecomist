@@ -1,0 +1,65 @@
+#!/bin/bash
+# /usr/local/bin/deploy-ecomist
+# Runs as root (via sudo) during GitHub Actions deployments.
+#
+# To update this script on the server, include scripts/deploy-ecomist in the SCP
+# bundle - it will self-update and re-exec before doing anything else.
+#
+# ecomist embeds its templates, static assets, migrations and tzdata into the
+# binary, so the only artifact to install is the binary itself.
+
+set -e
+
+DEPLOY_SRC="${1:-/tmp/ecomist-deploy}"
+DEPLOY_DIR=/var/www/ecomist
+
+# Self-update: if the bundle contains a newer version of this script, install
+# it and re-exec so the rest of the deployment runs with the updated logic.
+BUNDLE_SCRIPT="$DEPLOY_SRC/scripts/deploy-ecomist"
+if [ -f "$BUNDLE_SCRIPT" ] && ! diff -q /usr/local/bin/deploy-ecomist "$BUNDLE_SCRIPT" > /dev/null 2>&1; then
+    echo "[deploy] Updating deploy script from bundle..."
+    install -m 755 "$BUNDLE_SCRIPT" /usr/local/bin/deploy-ecomist
+    exec /usr/local/bin/deploy-ecomist "$@"
+fi
+
+# Read the service owner from the installed unit - no hardcoded username.
+SERVICE_USER=$(systemctl show ecomist --property=User --value)
+SERVICE_GROUP=$(systemctl show ecomist --property=Group --value)
+
+if [ -z "$SERVICE_USER" ]; then
+    echo "[deploy] ERROR: Could not read User from ecomist.service"
+    exit 1
+fi
+
+echo "[deploy] Stopping service..."
+systemctl stop ecomist || true
+
+echo "[deploy] Installing binary to $DEPLOY_DIR/ecomist (owner: $SERVICE_USER:$SERVICE_GROUP)..."
+rm -f "$DEPLOY_DIR/ecomist"
+cp "$DEPLOY_SRC/ecomist" "$DEPLOY_DIR/ecomist"
+chmod +x "$DEPLOY_DIR/ecomist"
+chown "$SERVICE_USER:$SERVICE_GROUP" "$DEPLOY_DIR/ecomist"
+
+echo "[deploy] Enabling service on boot..."
+systemctl enable ecomist
+
+echo "[deploy] Starting service..."
+systemctl start ecomist
+
+echo "[deploy] Verifying service is active..."
+for i in 1 2 3 4 5; do
+    if systemctl is-active --quiet ecomist; then
+        break
+    fi
+    sleep 1
+done
+if ! systemctl is-active --quiet ecomist; then
+    echo "[deploy] ERROR: Service failed to start. Status:"
+    systemctl status ecomist --no-pager --lines=30
+    exit 1
+fi
+
+echo "[deploy] Cleaning up..."
+rm -rf "$DEPLOY_SRC"
+
+echo "[deploy] Done - ecomist is running."

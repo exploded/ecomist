@@ -1,0 +1,36 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+  <div>
+    <h1>Runs</h1>
+    <p class="page-sub">{{.FranchiseName}}</p>
+  </div>
+</div>
+
+<form class="card no-print" hx-post="/runs" hx-swap="none" style="display:flex;gap:8px">
+  <input class="input" type="text" name="name" placeholder="New run name&hellip;" required>
+  <button type="submit" class="btn" hx-disabled-elt="this">Add</button>
+</form>
+
+<div class="section" style="min-height:120px">
+  {{if .Items}}
+  {{range .Items}}
+  <div class="card">
+    <div class="card-row">
+      <a href="/runs/{{.ID}}" style="text-decoration:none;color:inherit;flex:1;min-width:0">
+        <div class="card-title">{{.Name}}</div>
+        <div class="card-sub">{{.StopCount}} stops &middot; {{.UnitCount}} dispensers</div>
+      </a>
+      <a class="btn btn-ghost btn-sm" href="/runs/{{.ID}}/print" target="_blank">Print</a>
+      <button class="btn btn-accent btn-sm"
+        hx-post="/runs/{{.ID}}/start" hx-disabled-elt="this"
+        hx-confirm="Start {{.Name}} now?">Start</button>
+    </div>
+  </div>
+  {{end}}
+  {{else}}
+  <div class="empty">No runs yet - add one above, then add customers to it.</div>
+  {{end}}
+</div>
+{{end}}

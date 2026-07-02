@@ -1,0 +1,46 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+  <div>
+    <h1>Lookups</h1>
+    <p class="page-sub">Dispenser models and fragrances, shared by every franchise. New ones are also added automatically as you type when editing dispensers.</p>
+  </div>
+</div>
+
+<div class="section">
+  <p class="section-title">Dispenser models</p>
+  <div class="table-card">
+    {{range .Extra.Models}}
+    <div class="trow">
+      <input class="input autosave" name="name" value="{{.Name}}" style="flex:1"
+        hx-patch="/lookups/models/{{.ID}}" hx-trigger="change" hx-swap="none">
+      <label class="small muted" style="display:flex;align-items:center;gap:5px;white-space:nowrap">
+        <input type="checkbox" name="active" value="1" {{if eq .Active 1}}checked{{end}}
+          hx-patch="/lookups/models/{{.ID}}" hx-vals='js:{active: event.target.checked ? 1 : 0}'
+          hx-trigger="change" hx-swap="none"> In use
+      </label>
+    </div>
+    {{end}}
+  </div>
+</div>
+
+<div class="section">
+  <p class="section-title">Fragrances</p>
+  <div class="table-card">
+    {{range .Extra.Fragrances}}
+    <div class="trow">
+      <input class="input autosave" name="name" value="{{.Name}}" style="flex:1"
+        hx-patch="/lookups/fragrances/{{.ID}}" hx-trigger="change" hx-swap="none">
+      <input class="input autosave" type="number" name="default_size_ml" value="{{nullIntStr .DefaultSizeMl}}" placeholder="ml" min="0" style="flex:0 0 90px"
+        hx-patch="/lookups/fragrances/{{.ID}}" hx-trigger="change" hx-swap="none">
+      <label class="small muted" style="display:flex;align-items:center;gap:5px;white-space:nowrap">
+        <input type="checkbox" name="active" value="1" {{if eq .Active 1}}checked{{end}}
+          hx-patch="/lookups/fragrances/{{.ID}}" hx-vals='js:{active: event.target.checked ? 1 : 0}'
+          hx-trigger="change" hx-swap="none"> In use
+      </label>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

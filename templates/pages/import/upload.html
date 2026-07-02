@@ -1,0 +1,31 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+  <div>
+    <h1>Import a run sheet</h1>
+    <p class="page-sub">Upload an ACT! run-sheet PDF and we'll read it into a new run - customers, zones and dispensers included. You'll review everything before it's saved.</p>
+  </div>
+</div>
+
+{{with .Extra.Error}}
+<div class="access-note" style="background:var(--red-soft);border-color:#e8b5b1">
+  <span>{{.}}</span>
+</div>
+{{end}}
+
+{{if .Extra.Enabled}}
+<form class="card" method="post" action="/import" enctype="multipart/form-data"
+      onsubmit="document.getElementById('import-btn').disabled=true;document.getElementById('import-btn').textContent='Reading the PDF… this can take a minute';">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <div class="field">
+    <label>Run sheet PDF</label>
+    <input class="input" type="file" name="pdf" accept="application/pdf" required>
+  </div>
+  <button id="import-btn" type="submit" class="btn btn-block">Read the PDF</button>
+</form>
+<p class="small muted" style="margin-top:10px">The import creates a <strong>new run</strong> in {{.FranchiseName}}. Nothing is saved until you confirm the preview.</p>
+{{else}}
+<div class="empty">PDF import isn't configured on this server yet (missing ANTHROPIC_API_KEY).</div>
+{{end}}
+{{end}}

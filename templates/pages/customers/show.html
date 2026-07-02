@@ -1,0 +1,80 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{$c := .Item}}
+<div class="page-header">
+  <div style="min-width:0">
+    <p class="page-sub"><a href="/customers" style="color:inherit">Customers</a> /</p>
+    <h1>{{$c.Name}}</h1>
+    {{with $.Extra.Run}}<p class="page-sub">On run: <a href="/runs/{{.ID}}">{{.Name}}</a></p>{{end}}
+  </div>
+  {{if $c.AddressLine}}
+  <a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="{{mapsURL $c.AddressLine $c.Suburb}}">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.3-7-11a7 7 0 0 1 14 0c0 5.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+    Map
+  </a>
+  {{end}}
+</div>
+
+<div class="card">
+  <div class="field">
+    <label>Customer name</label>
+    <input class="input autosave" name="name" value="{{$c.Name}}"
+      hx-patch="/customers/{{$c.ID}}" hx-trigger="change" hx-swap="none">
+  </div>
+  <div class="field">
+    <label>Address</label>
+    <input class="input autosave" name="address_line" value="{{$c.AddressLine}}" placeholder="Street address"
+      hx-patch="/customers/{{$c.ID}}" hx-trigger="change" hx-swap="none">
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div class="field">
+      <label>Suburb</label>
+      <input class="input autosave" name="suburb" value="{{$c.Suburb}}"
+        hx-patch="/customers/{{$c.ID}}" hx-trigger="change" hx-swap="none">
+    </div>
+    <div class="field">
+      <label>Phone</label>
+      <input class="input autosave" type="tel" name="phone" value="{{$c.Phone}}"
+        hx-patch="/customers/{{$c.ID}}" hx-trigger="change" hx-swap="none">
+    </div>
+    <div class="field">
+      <label>Map ref</label>
+      <input class="input autosave" name="map_ref" value="{{$c.MapRef}}" placeholder="e.g. 70 J3"
+        hx-patch="/customers/{{$c.ID}}" hx-trigger="change" hx-swap="none">
+    </div>
+    <div class="field">
+      <label>Minutes on site</label>
+      <input class="input autosave" type="number" name="service_minutes" value="{{$c.ServiceMinutes}}" min="0" inputmode="numeric"
+        hx-patch="/customers/{{$c.ID}}" hx-trigger="change" hx-swap="none">
+    </div>
+  </div>
+  <div class="field">
+    <label>Access notes <span class="muted" style="text-transform:none;letter-spacing:0">(door codes, ladder, call ahead&hellip;)</span></label>
+    <textarea class="input autosave" name="access_notes" rows="3" placeholder="e.g. Door code 2580. Need ladder."
+      hx-patch="/customers/{{$c.ID}}" hx-trigger="change" hx-swap="none">{{$c.AccessNotes}}</textarea>
+  </div>
+  <div class="field" style="margin-bottom:0">
+    <label>General notes</label>
+    <textarea class="input autosave" name="general_notes" rows="2" placeholder="e.g. Rotate between Lemon Talc and Citrus Vanilla."
+      hx-patch="/customers/{{$c.ID}}" hx-trigger="change" hx-swap="none">{{$c.GeneralNotes}}</textarea>
+  </div>
+</div>
+
+<div class="section">
+  <p class="section-title">Contacts</p>
+  {{template "customers/_contacts" .}}
+</div>
+
+<div class="section">
+  {{template "customers/_dispensers" .}}
+</div>
+
+<div class="section no-print" style="margin-top:40px">
+  <button class="btn btn-danger btn-sm"
+    hx-delete="/customers/{{$c.ID}}"
+    hx-confirm="Remove {{$c.Name}}? Their dispensers and history stay in the system but the customer disappears from lists and runs.">
+    Remove customer
+  </button>
+</div>
+{{end}}

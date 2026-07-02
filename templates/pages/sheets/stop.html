@@ -1,0 +1,68 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{$stop := .Item}}
+{{$sheet := .Extra.Sheet}}
+<div class="page-header">
+  <div style="min-width:0">
+    <p class="page-sub"><a href="/sheets/{{$sheet.ID}}" style="color:inherit">&larr; {{$sheet.RunName}}</a></p>
+    <h1>{{$stop.CustomerName}}</h1>
+    <p class="page-sub">
+      {{if $stop.AddressLine}}{{$stop.AddressLine}}{{if $stop.Suburb}}, {{$stop.Suburb}}{{end}}{{end}}
+      {{if $stop.MapRef}} &middot; {{$stop.MapRef}}{{end}}
+    </p>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+    {{if $stop.AddressLine}}
+    <a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="{{mapsURL $stop.AddressLine $stop.Suburb}}">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.3-7-11a7 7 0 0 1 14 0c0 5.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+      Map
+    </a>
+    {{end}}
+    {{if $stop.Phone}}<a class="btn btn-ghost btn-sm" href="tel:{{$stop.Phone}}">Call</a>{{end}}
+  </div>
+</div>
+
+{{if $stop.AccessNotes}}
+<div class="access-note">
+  <svg class="an-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--amber-deep)" stroke-width="2" stroke-linecap="round"><path d="M12 3 2.5 20h19L12 3z"/><path d="M12 9.5v4.5"/><circle cx="12" cy="17" r=".4" fill="var(--amber-deep)"/></svg>
+  <span>{{$stop.AccessNotes}}</span>
+</div>
+{{end}}
+
+{{if .Extra.Contacts}}
+<p class="page-sub" style="margin:4px 2px 0">
+  {{range $i, $ct := .Extra.Contacts}}{{if $i}} &middot; {{end}}{{if $ct.Role}}{{$ct.Role}}: {{end}}{{$ct.Name}}{{end}}
+</p>
+{{end}}
+
+{{template "sheets/_progress" .}}
+
+{{template "sheets/_groups" .}}
+
+{{if $stop.GeneralNotes}}
+<div class="card" style="background:var(--mist-100);box-shadow:none;font-style:italic">{{$stop.GeneralNotes}}</div>
+{{end}}
+
+<div class="section">
+  <p class="section-title">Stop notes</p>
+  <textarea class="input autosave" name="note" rows="2" placeholder="Anything to note for this visit&hellip;"
+    hx-patch="/stops/{{$stop.ID}}/note" hx-trigger="change" hx-swap="none">{{$stop.Note}}</textarea>
+</div>
+
+<div class="section no-print" style="display:flex;gap:10px">
+  {{if eq $stop.Status "pending"}}
+  <button class="btn btn-ghost" style="flex:1"
+    hx-post="/stops/{{$stop.ID}}/complete" hx-vals='{"status":"skipped"}'
+    hx-prompt="Why are you skipping this stop?" hx-disabled-elt="this">Skip stop</button>
+  <button class="btn" style="flex:2"
+    hx-post="/stops/{{$stop.ID}}/complete" hx-vals='{"status":"done"}' hx-disabled-elt="this">Mark stop done</button>
+  {{else}}
+  <div class="card" style="flex:1;display:flex;align-items:center;justify-content:space-between;background:{{if eq $stop.Status "done"}}var(--ok-soft){{else}}var(--skip-soft){{end}}">
+    <strong>{{if eq $stop.Status "done"}}Stop done{{else}}Stop skipped{{end}}</strong>
+    <button class="btn btn-ghost btn-sm"
+      hx-post="/stops/{{$stop.ID}}/reopen" hx-disabled-elt="this">Undo</button>
+  </div>
+  {{end}}
+</div>
+{{end}}

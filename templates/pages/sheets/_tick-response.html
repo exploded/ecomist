@@ -1,0 +1,5 @@
+{{define "sheets/_tick-response"}}
+{{/* Primary swap: the toggled dispenser row. OOB: refreshed progress header. */}}
+{{template "sheets/_disp" (dict "D" .Extra.Row "SheetID" .Extra.Sheet.ID "StopID" .Item.ID)}}
+{{template "sheets/_progress" .}}
+{{end}}

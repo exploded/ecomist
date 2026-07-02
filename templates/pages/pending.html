@@ -1,0 +1,13 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="login-hero">
+  <svg class="login-mark" viewBox="0 0 24 24" aria-hidden="true" style="color:var(--amber)"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3.2 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+  <h1 class="login-title">Almost there</h1>
+  <p class="login-sub">Your account is waiting for approval.<br>Ask your administrator to let you in, then refresh this page.</p>
+  <form method="post" action="/logout">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <button type="submit" class="btn btn-ghost">Sign out</button>
+  </form>
+</div>
+{{end}}

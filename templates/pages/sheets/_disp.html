@@ -1,0 +1,36 @@
+{{define "sheets/_disp"}}
+{{$d := .D}}
+{{$sheetID := .SheetID}}
+<div class="tick-row {{if $d.TickID.Valid}}is-ticked{{end}}" id="sd-{{$d.ID}}">
+  <button class="tick-hit" hx-disabled-elt="this"
+    {{if $d.TickID.Valid}}
+    hx-delete="/sheets/{{$sheetID}}/ticks/{{$d.ID}}"
+    {{else}}
+    hx-post="/sheets/{{$sheetID}}/ticks/{{$d.ID}}"
+    {{end}}
+    hx-target="#sd-{{$d.ID}}" hx-swap="outerHTML">
+    <span class="tick-box"><svg viewBox="0 0 24 24"><path d="m5 13 5 5 9-11"/></svg></span>
+    <span class="tick-main">
+      <span class="tick-loc">{{if $d.SeqLabel}}{{$d.SeqLabel}}. {{end}}{{$d.Location}}</span>
+      <span class="tick-meta">
+        <span class="badge badge-pine">{{$d.ModelName}}</span>
+        {{if $d.FragranceName.Valid}}<span class="badge">{{$d.FragranceName.String}}</span>
+        {{else if $d.FragranceNote}}<span class="badge badge-warn">{{$d.FragranceNote}}</span>{{end}}
+        {{if gt $d.Quantity 1}}<span class="badge">&times;{{$d.Quantity}}</span>{{end}}
+        {{if $d.ServiceIntervalDays.Valid}}<span class="badge">{{$d.ServiceIntervalDays.Int64}}d</span>{{end}}
+        {{if $d.Notes}}<span class="badge" title="{{$d.Notes}}">&#9432; {{$d.Notes}}</span>{{end}}
+        {{if $d.TickID.Valid}}<span class="tick-time">&#10003; {{localTime $d.TickedAt.String}}</span>{{end}}
+      </span>
+    </span>
+  </button>
+  {{if $d.TickID.Valid}}
+  <details class="tick-note">
+    <summary class="btn-icon" aria-label="Add a note" title="Note">&#9998;</summary>
+    <div class="tick-note-pop">
+      <input class="input autosave" name="note" value="{{$d.TickNote.String}}" placeholder="Note for this dispenser&hellip;"
+        hx-patch="/sheets/{{$sheetID}}/ticks/{{$d.ID}}/note" hx-trigger="change" hx-swap="none">
+    </div>
+  </details>
+  {{end}}
+</div>
+{{end}}

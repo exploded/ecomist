@@ -1,0 +1,58 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0c3832">
+  <title>{{block "title" .}}{{if .Title}}{{.Title}} · {{end}}Ecomist{{end}}</title>
+  <link rel="preload" href="/static/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+  <script src="/static/js/htmx.min.js" defer></script>
+</head>
+<body hx-headers='{"X-CSRF-Token": "{{.CSRFToken}}"}'>
+  {{template "nav" .}}
+  <main id="main-content" class="app-main">
+    {{block "content" .}}{{end}}
+  </main>
+  {{template "bottomnav" .}}
+  <div id="toast-container" aria-live="polite"></div>
+  <script>
+    // Toasts fired via HX-Trigger response headers.
+    document.body.addEventListener("showToast", e => {
+      const el = document.createElement("div");
+      el.className = "toast toast-" + (e.detail.type || "info");
+      el.textContent = e.detail.msg;
+      document.getElementById("toast-container").appendChild(el);
+      setTimeout(() => el.classList.add("toast-out"), 2600);
+      setTimeout(() => el.remove(), 3000);
+    });
+    // Autosave feedback: inputs with class "autosave" flash a saved state.
+    document.body.addEventListener("htmx:afterRequest", e => {
+      const el = e.detail.elt;
+      if (!el.classList || !el.classList.contains("autosave")) return;
+      el.classList.remove("save-ok", "save-err");
+      void el.offsetWidth; // restart the CSS animation
+      el.classList.add(e.detail.successful ? "save-ok" : "save-err");
+    });
+    // Close any open combobox menu when tapping elsewhere.
+    document.addEventListener("click", e => {
+      document.querySelectorAll(".combo-menu").forEach(m => {
+        if (!m.closest(".combo").contains(e.target)) m.innerHTML = "";
+      });
+    });
+    // Highlight the current section in the bottom nav.
+    (() => {
+      const path = location.pathname;
+      document.querySelectorAll(".bn-item").forEach(a => {
+        const href = a.getAttribute("href");
+        if (href === "/" ? (path === "/" || path.startsWith("/sheets")) : path.startsWith(href)) {
+          a.classList.add("is-active");
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
+{{end}}

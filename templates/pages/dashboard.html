@@ -1,0 +1,69 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+  <div>
+    <h1>G'day{{if .Cur}}, {{firstName .Cur.User.Name}}{{end}}</h1>
+    <p class="page-sub">{{.FranchiseName}}</p>
+  </div>
+</div>
+
+{{$open := .Extra.OpenSheets}}
+{{if $open}}
+<div class="section" style="margin-top:6px">
+  <p class="section-title">In progress</p>
+  {{range $open}}
+  <a class="card card-link stop-card is-pending" href="/sheets/{{.ID}}">
+    <div class="card-row">
+      <div>
+        <div class="card-title">{{.RunName}}</div>
+        <div class="card-sub">Started {{localDate .CreatedAt}} &middot; {{.DoneCount}}/{{.StopCount}} stops done</div>
+      </div>
+      <span class="badge badge-warn">Resume</span>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" style="width:{{pct .DoneCount .StopCount}}%"></div></div>
+    </div>
+  </a>
+  {{end}}
+</div>
+{{end}}
+
+<div class="section">
+  <p class="section-title">Start a run</p>
+  {{if .Extra.Runs}}
+  {{range .Extra.Runs}}
+  <div class="card">
+    <div class="card-row">
+      <a href="/runs/{{.ID}}" style="text-decoration:none;color:inherit;flex:1;min-width:0">
+        <div class="card-title">{{.Name}}</div>
+        <div class="card-sub">{{.StopCount}} stops &middot; {{.UnitCount}} dispensers</div>
+      </a>
+      <button class="btn btn-accent btn-sm"
+        hx-post="/runs/{{.ID}}/start" hx-disabled-elt="this"
+        hx-confirm="Start {{.Name}} now?">Start</button>
+    </div>
+  </div>
+  {{end}}
+  {{else}}
+  <div class="empty">No runs yet. Create one under <a href="/runs">Runs</a>.</div>
+  {{end}}
+</div>
+
+{{if .Extra.Recent}}
+<div class="section">
+  <p class="section-title">Recently completed</p>
+  {{range .Extra.Recent}}
+  <a class="card card-link" href="/sheets/{{.ID}}">
+    <div class="card-row">
+      <div>
+        <div class="card-title">{{.RunName}}</div>
+        <div class="card-sub">{{niceDate .RunDate}} &middot; {{.StopCount}} stops</div>
+      </div>
+      <span class="badge badge-ok">Done</span>
+    </div>
+  </a>
+  {{end}}
+</div>
+{{end}}
+{{end}}

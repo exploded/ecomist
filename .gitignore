@@ -1,0 +1,11 @@
+# Secrets and local data - never commit
+.env
+*.db
+*.db-shm
+*.db-wal
+.local/
+
+# Build artifacts
+ecomist
+ecomist.exe
+*.exe

@@ -1,0 +1,53 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{$sheet := .Item}}
+<div class="page-header">
+  <div>
+    <p class="page-sub">{{niceDate $sheet.RunDate}}</p>
+    <h1>{{$sheet.RunName}}</h1>
+  </div>
+  {{if eq $sheet.Status "completed"}}
+  <span class="badge badge-ok" style="font-size:.85rem">Completed</span>
+  {{end}}
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-track"><div class="progress-fill" style="width:{{pct .Extra.Done .Extra.Total}}%"></div></div>
+  <div class="progress-label">{{.Extra.Done}} of {{.Extra.Total}} stops done</div>
+</div>
+
+<div class="section" style="margin-top:14px">
+  {{range .Items}}
+  <a class="card card-link stop-card is-{{.Status}}" href="/sheets/{{$sheet.ID}}/stops/{{.ID}}">
+    <div class="card-row">
+      <div style="min-width:0;flex:1">
+        <div class="card-title">{{.CustomerName}}</div>
+        <div class="card-sub">
+          {{if .Suburb}}{{.Suburb}} &middot; {{end}}{{.TickedUnits}}/{{.TotalUnits}} dispensers
+          {{if .Note}} &middot; &#128221;{{end}}
+        </div>
+      </div>
+      {{if eq .Status "done"}}
+      <svg class="stop-status-icon" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" fill="var(--ok-soft)" stroke="none"/><path d="m7.5 12.5 3 3 6-7"/></svg>
+      {{else if eq .Status "skipped"}}
+      <svg class="stop-status-icon" viewBox="0 0 24 24" fill="none" stroke="var(--skip)" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10" fill="var(--skip-soft)" stroke="none"/><path d="M8 12h8"/></svg>
+      {{else}}
+      <svg class="stop-status-icon" viewBox="0 0 24 24" fill="none" stroke="var(--mist-400)" stroke-width="2"><circle cx="12" cy="12" r="9.4"/></svg>
+      {{end}}
+    </div>
+  </a>
+  {{end}}
+</div>
+
+<div class="section no-print" style="display:flex;gap:10px">
+  {{if eq $sheet.Status "open"}}
+  <button class="btn btn-accent btn-block"
+    hx-post="/sheets/{{$sheet.ID}}/complete" hx-disabled-elt="this"
+    hx-confirm="Finish this run?">Finish run</button>
+  {{else}}
+  <button class="btn btn-ghost btn-block"
+    hx-post="/sheets/{{$sheet.ID}}/reopen" hx-disabled-elt="this">Reopen run</button>
+  {{end}}
+</div>
+{{end}}

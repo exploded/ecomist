@@ -1,0 +1,49 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{$d := .Item}}
+<div class="page-header">
+  <div>
+    <p class="page-sub">Review before saving</p>
+    <h1>{{$d.RunName}}</h1>
+    <p class="page-sub">{{len $d.Customers}} customers &middot; {{.Extra.TotalUnits}} dispensers &middot; importing into <strong>{{.FranchiseName}}</strong></p>
+  </div>
+</div>
+
+{{range $d.Customers}}
+<div class="card">
+  <div class="card-row">
+    <div style="min-width:0">
+      <div class="card-title">{{.Name}}</div>
+      <div class="card-sub">{{.AddressLine}}{{if .Suburb}}, {{.Suburb}}{{end}}{{if .MapRef}} &middot; {{.MapRef}}{{end}}</div>
+    </div>
+    <span class="badge badge-pine">{{len .Dispensers}} lines</span>
+  </div>
+  {{if .AccessNotes}}<div class="small" style="margin-top:6px">&#128273; {{.AccessNotes}}</div>{{end}}
+  {{if .Contacts}}
+  <div class="small muted" style="margin-top:4px">
+    {{range $i, $c := .Contacts}}{{if $i}} &middot; {{end}}{{if $c.Role}}{{$c.Role}}: {{end}}{{$c.Name}}{{if $c.IsPrimary}} &#9733;{{end}}{{end}}
+  </div>
+  {{end}}
+  <details style="margin-top:8px">
+    <summary class="small" style="cursor:pointer;color:var(--pine-700);font-weight:600">Show dispensers</summary>
+    <div style="margin-top:6px">
+      {{range .Dispensers}}
+      <div class="small" style="padding:4px 0;border-bottom:1px solid var(--mist-100)">
+        {{if .ZoneLabel}}<span class="badge" style="margin-right:4px">{{.ZoneLabel}}</span>{{end}}
+        {{if .SeqLabel}}{{.SeqLabel}}. {{end}}{{.Location}}
+        <span class="muted">&mdash; {{.Model}}{{if gt .Quantity 1}} &times;{{.Quantity}}{{end}}{{if .Fragrance}}, {{.Fragrance}}{{else if .FragranceNote}}, {{.FragranceNote}}{{end}}{{if .ServiceIntervalDays}}, {{.ServiceIntervalDays}}d{{end}}</span>
+      </div>
+      {{end}}
+    </div>
+  </details>
+</div>
+{{end}}
+
+<form method="post" action="/import/confirm" style="display:flex;gap:10px;margin-top:18px">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+  <input type="hidden" name="token" value="{{.Extra.Token}}">
+  <a class="btn btn-ghost" href="/import" style="flex:1">Start over</a>
+  <button type="submit" class="btn btn-accent" style="flex:2">Looks right - import it</button>
+</form>
+{{end}}

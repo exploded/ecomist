@@ -1,0 +1,78 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="page-header">
+  <div>
+    <h1>Admin</h1>
+    <p class="page-sub">Franchises, sign-in approvals and users.</p>
+  </div>
+</div>
+
+<div class="section">
+  <p class="section-title">Franchises</p>
+  <div class="table-card">
+    {{range .Franchises}}
+    <div class="trow"><strong style="flex:1;padding:6px 8px">{{.Name}}</strong></div>
+    {{end}}
+    <form class="trow" hx-post="/admin/franchises" hx-swap="none">
+      <input class="input" name="name" placeholder="New franchise name&hellip;" style="flex:1" required>
+      <button type="submit" class="btn btn-sm" hx-disabled-elt="this">Add</button>
+    </form>
+  </div>
+</div>
+
+<div class="section">
+  <p class="section-title">Approved sign-ins</p>
+  <p class="small muted" style="margin:0 2px 8px">Anyone on this list gets straight in with their Google account, into the franchise shown.</p>
+  <div class="table-card">
+    {{range .Extra.Approved}}
+    <div class="trow">
+      <span style="flex:1.4;padding:0 8px">{{.Email}}</span>
+      <span class="badge badge-pine">{{.FranchiseName}}</span>
+      <button class="btn-icon" aria-label="Remove"
+        hx-delete="/admin/approved" hx-vals='{"email":"{{.Email}}"}'
+        hx-confirm="Remove {{.Email}} from the approved list? (Existing sign-ins keep working.)">&#10005;</button>
+    </div>
+    {{end}}
+    <form class="trow" hx-post="/admin/approved" hx-swap="none">
+      <input class="input" type="email" name="email" placeholder="person@gmail.com" style="flex:1.4" required>
+      <select class="select" name="franchise_id" style="flex:1" required>
+        {{range .Franchises}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+      </select>
+      <button type="submit" class="btn btn-sm" hx-disabled-elt="this">Approve</button>
+    </form>
+  </div>
+</div>
+
+<div class="section">
+  <p class="section-title">Users</p>
+  <div class="table-card">
+    {{range .Extra.Users}}
+    <div class="trow">
+      <div style="flex:1.6;min-width:0;padding:0 8px">
+        <div style="font-weight:600">{{.Name}}</div>
+        <div class="small muted">{{.Email}}</div>
+      </div>
+      {{if eq .IsAdmin 1}}
+      <span class="badge badge-pine">Admin - all franchises</span>
+      {{else if eq .Approved 1}}
+      <span class="badge badge-ok">{{if .FranchiseName.Valid}}{{.FranchiseName.String}}{{else}}Approved{{end}}</span>
+      {{else}}
+      <form style="display:flex;gap:6px" hx-post="/admin/users/{{.ID}}/approve" hx-swap="none">
+        <select class="select select-sm" name="franchise_id" required>
+          <option value="" disabled selected>Franchise&hellip;</option>
+          {{range $.Franchises}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+        </select>
+        <button type="submit" class="btn btn-sm btn-accent" hx-disabled-elt="this">Approve</button>
+      </form>
+      {{end}}
+      {{if ne .IsAdmin 1}}
+      <button class="btn-icon" aria-label="Remove user"
+        hx-delete="/admin/users/{{.ID}}"
+        hx-confirm="Remove {{.Name}}? They will need re-approval to get back in.">&#10005;</button>
+      {{end}}
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

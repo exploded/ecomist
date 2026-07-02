@@ -1,0 +1,34 @@
+{{template "base" .}}
+
+{{define "content"}}
+{{$run := .Item}}
+<div class="page-header">
+  <div style="min-width:0">
+    <p class="page-sub"><a href="/runs" style="color:inherit">Runs</a> /</p>
+    <h1 style="margin-bottom:8px">
+      <input class="input autosave" name="name" value="{{$run.Name}}" style="font-size:1.3rem;font-weight:700"
+        hx-patch="/runs/{{$run.ID}}" hx-trigger="change" hx-swap="none">
+    </h1>
+  </div>
+  <div style="display:flex;gap:8px;flex-shrink:0">
+    <a class="btn btn-ghost btn-sm" href="/runs/{{$run.ID}}/print" target="_blank">Print</a>
+    <button class="btn btn-accent btn-sm" hx-post="/runs/{{$run.ID}}/start" hx-disabled-elt="this"
+      hx-confirm="Start {{$run.Name}} now?">Start run</button>
+  </div>
+</div>
+
+<div class="field">
+  <textarea class="input autosave" name="notes" rows="2" placeholder="Run notes&hellip;"
+    hx-patch="/runs/{{$run.ID}}" hx-trigger="change" hx-swap="none">{{$run.Notes}}</textarea>
+</div>
+
+{{template "runs/_stops" .}}
+
+<div class="section no-print" style="margin-top:40px">
+  <button class="btn btn-danger btn-sm"
+    hx-delete="/runs/{{$run.ID}}"
+    hx-confirm="Remove {{$run.Name}}? Customers stay - they just come off this run.">
+    Remove run
+  </button>
+</div>
+{{end}}

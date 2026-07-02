@@ -1,0 +1,32 @@
+{{define "customers/_contacts"}}
+<div id="contacts-section">
+  <div class="table-card">
+    {{range .Extra.Contacts}}
+    <div class="trow">
+      <input class="input autosave" name="name" value="{{.Name}}" placeholder="Name" style="flex:1.2"
+        hx-patch="/contacts/{{.ID}}" hx-trigger="change" hx-swap="none">
+      <input class="input autosave" name="role" value="{{.Role}}" placeholder="Role" style="flex:1"
+        hx-patch="/contacts/{{.ID}}" hx-trigger="change" hx-swap="none">
+      <input class="input autosave" type="tel" name="phone" value="{{.Phone}}" placeholder="Phone" style="flex:1"
+        hx-patch="/contacts/{{.ID}}" hx-trigger="change" hx-swap="none">
+      {{if eq .IsPrimary 1}}<span class="badge badge-pine" title="Scheduled with">Primary</span>{{end}}
+      <button class="btn-icon" aria-label="Delete contact"
+        hx-delete="/contacts/{{.ID}}" hx-target="#contacts-section" hx-swap="outerHTML"
+        hx-confirm="Remove {{.Name}}?">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V5h6v2m-8 0 1 13h8l1-13"/></svg>
+      </button>
+    </div>
+    {{end}}
+    <form class="trow" hx-post="/customers/{{.Extra.CustomerID}}/contacts"
+          hx-target="#contacts-section" hx-swap="outerHTML">
+      <input class="input" name="name" placeholder="Add contact&hellip;" style="flex:1.2" required>
+      <input class="input" name="role" placeholder="Role" style="flex:1">
+      <input class="input" type="tel" name="phone" placeholder="Phone" style="flex:1">
+      <label class="small muted" style="display:flex;align-items:center;gap:4px;white-space:nowrap">
+        <input type="checkbox" name="is_primary" value="1"> Primary
+      </label>
+      <button type="submit" class="btn btn-sm" hx-disabled-elt="this">Add</button>
+    </form>
+  </div>
+</div>
+{{end}}

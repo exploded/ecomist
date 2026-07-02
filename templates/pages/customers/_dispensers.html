@@ -1,0 +1,112 @@
+{{define "customers/_dispensers"}}
+{{$c := .Item}}
+<div id="dispenser-section">
+  <p class="section-title">
+    <span>Dispensers</span>
+    <span class="tally-row">
+      {{range .Extra.Tally}}<span class="badge badge-pine">{{.Units}} &times; {{.ModelName}}</span>{{end}}
+      <span class="badge">{{.Extra.TotalUnits}} total</span>
+    </span>
+  </p>
+
+  {{range .Extra.Dispensers}}
+  <div class="zone-block">
+    {{with .Zone}}
+    <div class="card" style="padding:10px 12px;background:var(--pine-50)">
+      <div class="input-row">
+        <input class="input autosave" name="label" value="{{.Label}}" placeholder="Zone" style="flex:.6;font-weight:700"
+          hx-patch="/zones/{{.ID}}" hx-trigger="change" hx-swap="none">
+        <input class="input autosave" name="area" value="{{.Area}}" placeholder="Area (e.g. Ground Floor)" style="flex:1.4"
+          hx-patch="/zones/{{.ID}}" hx-trigger="change" hx-swap="none">
+        <input class="input autosave" name="access_notes" value="{{.AccessNotes}}" placeholder="Door code / access" style="flex:1"
+          hx-patch="/zones/{{.ID}}" hx-trigger="change" hx-swap="none">
+        <button class="btn-icon" aria-label="Delete zone"
+          hx-delete="/zones/{{.ID}}" hx-target="#dispenser-section" hx-swap="outerHTML"
+          hx-confirm="Delete this zone? Its dispensers stay, unzoned.">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V5h6v2m-8 0 1 13h8l1-13"/></svg>
+        </button>
+      </div>
+    </div>
+    {{end}}
+
+    {{range .Dispensers}}
+    <div class="card" id="disp-{{.ID}}" style="padding:11px 12px">
+      <div class="input-row">
+        <input class="input autosave" name="seq_label" value="{{.SeqLabel}}" placeholder="#" style="flex:0 0 58px;text-align:center"
+          hx-patch="/dispensers/{{.ID}}" hx-trigger="change" hx-swap="none">
+        <input class="input autosave" name="location" value="{{.Location}}" placeholder="Location"
+          hx-patch="/dispensers/{{.ID}}" hx-trigger="change" hx-swap="none">
+        <button class="btn-icon" aria-label="Remove dispenser"
+          hx-delete="/dispensers/{{.ID}}" hx-target="#dispenser-section" hx-swap="outerHTML"
+          hx-confirm="Remove this dispenser?">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V5h6v2m-8 0 1 13h8l1-13"/></svg>
+        </button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        {{template "combo" (dict "Kind" "models" "Field" "model_id" "UID" (printf "d%d" .ID)
+            "Value" (printf "%d" .ModelID) "Display" .ModelName "Query" ""
+            "PatchURL" (printf "/dispensers/%d" .ID) "TargetSel" "#dispenser-section"
+            "Placeholder" "Model" "Options" nil "ShowCreate" false)}}
+        {{template "combo" (dict "Kind" "fragrances" "Field" "fragrance_id" "UID" (printf "d%d" .ID)
+            "Value" (nullIntStr .FragranceID) "Display" .FragranceName.String "Query" ""
+            "PatchURL" (printf "/dispensers/%d" .ID) "TargetSel" "#dispenser-section"
+            "Placeholder" "Fragrance" "Options" nil "ShowCreate" false)}}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px">
+        <div class="field" style="margin:0">
+          <label>Qty</label>
+          <input class="input autosave" type="number" name="quantity" value="{{.Quantity}}" min="1" inputmode="numeric"
+            hx-patch="/dispensers/{{.ID}}" hx-trigger="change" hx-swap="none">
+        </div>
+        <div class="field" style="margin:0">
+          <label>Every (days)</label>
+          <input class="input autosave" type="number" name="service_interval_days" value="{{nullIntStr .ServiceIntervalDays}}" min="0" inputmode="numeric"
+            hx-patch="/dispensers/{{.ID}}" hx-trigger="change" hx-swap="none">
+        </div>
+        <div class="field" style="margin:0">
+          <label>Refill (ml)</label>
+          <input class="input autosave" type="number" name="refill_size_ml" value="{{nullIntStr .RefillSizeMl}}" min="0" inputmode="numeric"
+            hx-patch="/dispensers/{{.ID}}" hx-trigger="change" hx-swap="none">
+        </div>
+      </div>
+      <div class="input-row" style="margin-top:8px">
+        <input class="input autosave" name="fragrance_note" value="{{.FragranceNote}}" placeholder="Fragrance note (e.g. See below / rotate)"
+          hx-patch="/dispensers/{{.ID}}" hx-trigger="change" hx-swap="none">
+        <input class="input autosave" name="notes" value="{{.Notes}}" placeholder="Unit notes (hours, settings&hellip;)"
+          hx-patch="/dispensers/{{.ID}}" hx-trigger="change" hx-swap="none">
+      </div>
+    </div>
+    {{end}}
+
+    <details class="no-print" style="margin:2px 0 6px">
+      <summary class="btn btn-ghost btn-sm" style="display:inline-flex">+ Add dispenser{{with .Zone}} to {{if .Label}}{{.Label}}{{else}}{{.Area}}{{end}}{{end}}</summary>
+      <form class="card" hx-post="/customers/{{$c.ID}}/dispensers"
+            hx-target="#dispenser-section" hx-swap="outerHTML" style="margin-top:8px">
+        <input type="hidden" name="zone_id" value="{{with .Zone}}{{.ID}}{{end}}">
+        <div class="field">
+          <label>Location</label>
+          <input class="input" name="location" placeholder="e.g. Foyer, near reception" required>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          {{template "combo" (dict "Kind" "models" "Field" "model_id" "UID" (printf "n%s" .UID) "Value" "" "Display" "" "Query" "" "PatchURL" "" "TargetSel" "" "Placeholder" "Model" "Options" nil "ShowCreate" false)}}
+          {{template "combo" (dict "Kind" "fragrances" "Field" "fragrance_id" "UID" (printf "n%s" .UID) "Value" "" "Display" "" "Query" "" "PatchURL" "" "TargetSel" "" "Placeholder" "Fragrance" "Options" nil "ShowCreate" false)}}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px">
+          <input class="input" type="number" name="quantity" value="1" min="1" title="Qty">
+          <input class="input" type="number" name="service_interval_days" placeholder="Days" min="0">
+          <input class="input" type="number" name="refill_size_ml" placeholder="ml" min="0">
+        </div>
+        <button type="submit" class="btn btn-block" style="margin-top:10px" hx-disabled-elt="this">Add dispenser</button>
+      </form>
+    </details>
+  </div>
+  {{end}}
+
+  <form class="input-row no-print" style="margin-top:14px"
+        hx-post="/customers/{{$c.ID}}/zones" hx-target="#dispenser-section" hx-swap="outerHTML">
+    <input class="input" name="label" placeholder="New zone (e.g. ZONE 2)" style="flex:.7">
+    <input class="input" name="area" placeholder="Area (e.g. Level 1)" style="flex:1">
+    <button type="submit" class="btn btn-ghost" hx-disabled-elt="this">Add zone</button>
+  </form>
+</div>
+{{end}}

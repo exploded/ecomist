@@ -1,0 +1,51 @@
+{{define "sheets/_groups"}}
+{{$stop := .Item}}
+{{$sheet := .Extra.Sheet}}
+<div id="stop-groups" class="section" style="margin-top:16px">
+  {{range .Extra.Groups}}
+  <div class="zone-block">
+    {{if or .ZoneLabel .ZoneArea}}
+    <div class="zone-head">
+      <span class="zone-name">{{.ZoneLabel}}</span>
+      {{if .ZoneArea}}<span class="zone-area">{{.ZoneArea}}</span>{{end}}
+      {{if .ZoneAccessNotes}}<span class="badge badge-warn">{{.ZoneAccessNotes}}</span>{{end}}
+    </div>
+    {{end}}
+    {{range .Items}}
+    {{template "sheets/_disp" (dict "D" . "SheetID" $sheet.ID "StopID" $stop.ID)}}
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if not .Extra.Groups}}
+  <div class="empty">No dispensers recorded here yet - add the first one below.</div>
+  {{end}}
+
+  <details class="no-print" style="margin-top:6px">
+    <summary class="btn btn-ghost btn-sm" style="display:inline-flex">+ Add a dispenser found on site</summary>
+    <form class="card" hx-post="/customers/{{$stop.CustomerID}}/dispensers"
+          hx-target="#stop-groups" hx-swap="outerHTML" style="margin-top:8px">
+      <input type="hidden" name="sheet_id" value="{{$sheet.ID}}">
+      <input type="hidden" name="stop_id" value="{{$stop.ID}}">
+      <div class="field">
+        <label>Location</label>
+        <input class="input" name="location" placeholder="e.g. Staff toilet, level 1" required>
+      </div>
+      {{if .Extra.Zones}}
+      <div class="field">
+        <label>Zone</label>
+        <select class="select" name="zone_id">
+          <option value="">No zone</option>
+          {{range .Extra.Zones}}<option value="{{.ID}}">{{.Label}}{{if .Area}} - {{.Area}}{{end}}</option>{{end}}
+        </select>
+      </div>
+      {{end}}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        {{template "combo" (dict "Kind" "models" "Field" "model_id" "UID" "run" "Value" "" "Display" "" "Query" "" "PatchURL" "" "TargetSel" "" "Placeholder" "Model" "Options" nil "ShowCreate" false)}}
+        {{template "combo" (dict "Kind" "fragrances" "Field" "fragrance_id" "UID" "run" "Value" "" "Display" "" "Query" "" "PatchURL" "" "TargetSel" "" "Placeholder" "Fragrance" "Options" nil "ShowCreate" false)}}
+      </div>
+      <button type="submit" class="btn btn-block" style="margin-top:10px" hx-disabled-elt="this">Add dispenser</button>
+    </form>
+  </details>
+</div>
+{{end}}

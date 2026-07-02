@@ -1,0 +1,63 @@
+{{/*
+  Typeahead-that-creates combobox for lookup catalogs (models / fragrances).
+
+  Two modes:
+  - form mode (no PatchURL): picking/creating an option swaps the combobox into
+    its "selected" state with a hidden input, ready for the surrounding form's
+    submit. Used by the add-dispenser form.
+  - patch mode (PatchURL set): picking/creating an option PATCHes the entity
+    directly (autosave) and the server re-renders TargetSel. Used for editing
+    an existing dispenser's model/fragrance in place.
+
+  Render with: {{template "combo" (dict "Kind" "models" "Field" "model_id" ...)}}
+  or from Go via renderPartial("combo", comboData{...}).
+*/}}
+
+{{define "combo"}}
+<div class="combo" id="combo-{{.Field}}{{.UID}}">
+  <input type="hidden" name="{{.Field}}" value="{{.Value}}">
+  {{if .Display}}
+  <div class="combo-selected">
+    <span class="combo-chip">{{.Display}}</span>
+    <button type="button" class="combo-clear" aria-label="Change"
+      hx-post="/combo/{{.Kind}}"
+      hx-vals='{"field":"{{.Field}}","uid":"{{.UID}}","patch_url":"{{.PatchURL}}","target_sel":"{{.TargetSel}}"}'
+      hx-target="#combo-{{.Field}}{{.UID}}" hx-swap="outerHTML">&#10005;</button>
+  </div>
+  {{else}}
+  <input type="search" class="input combo-input" placeholder="{{.Placeholder}}" name="q"
+    value="{{.Query}}" autocomplete="off"
+    hx-get="/combo/{{.Kind}}"
+    hx-vals='{"field":"{{.Field}}","uid":"{{.UID}}","patch_url":"{{.PatchURL}}","target_sel":"{{.TargetSel}}"}'
+    hx-target="#combo-menu-{{.Field}}{{.UID}}" hx-swap="innerHTML"
+    hx-trigger="input changed delay:200ms, focus">
+  <div class="combo-menu" id="combo-menu-{{.Field}}{{.UID}}"></div>
+  {{end}}
+</div>
+{{end}}
+
+{{define "combo/_menu"}}
+{{range .Options}}
+<button type="button" class="combo-option"
+  {{if $.PatchURL}}
+  hx-patch="{{$.PatchURL}}" hx-vals='{"{{$.Field}}":"{{.ID}}","rerender":"1"}'
+  hx-target="{{$.TargetSel}}" hx-swap="outerHTML"
+  {{else}}
+  hx-post="/combo/{{$.Kind}}" hx-vals='{"id":"{{.ID}}","field":"{{$.Field}}","uid":"{{$.UID}}"}'
+  hx-target="#combo-{{$.Field}}{{$.UID}}" hx-swap="outerHTML"
+  {{end}}
+  hx-disabled-elt="this">{{.Name}}</button>
+{{end}}
+{{if .ShowCreate}}
+<button type="button" class="combo-option combo-create"
+  {{if .PatchURL}}
+  hx-patch="{{.PatchURL}}" hx-vals='{"combo_create":"{{.Kind}}","rerender":"1"}'
+  hx-include="closest .combo" hx-target="{{.TargetSel}}" hx-swap="outerHTML"
+  {{else}}
+  hx-post="/combo/{{.Kind}}" hx-vals='{"create":"1","field":"{{.Field}}","uid":"{{.UID}}"}'
+  hx-include="closest .combo" hx-target="#combo-{{.Field}}{{.UID}}" hx-swap="outerHTML"
+  {{end}}
+  hx-disabled-elt="this">+ Add &ldquo;{{.Query}}&rdquo;</button>
+{{end}}
+{{if and (not .Options) (not .ShowCreate)}}<div class="combo-empty">Type to search&hellip;</div>{{end}}
+{{end}}
