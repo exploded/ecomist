@@ -69,6 +69,50 @@ func (q *Queries) GetRun(ctx context.Context, id int64) (Run, error) {
 	return i, err
 }
 
+const listActiveCustomersByFranchise = `-- name: ListActiveCustomersByFranchise :many
+SELECT id, franchise_id, run_id, sort_order, name, address_line, suburb, phone, map_ref, regarding, service_minutes, access_notes, general_notes, active FROM customers
+WHERE franchise_id = ? AND active = 1
+ORDER BY name
+`
+
+func (q *Queries) ListActiveCustomersByFranchise(ctx context.Context, franchiseID int64) ([]Customer, error) {
+	rows, err := q.db.QueryContext(ctx, listActiveCustomersByFranchise, franchiseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Customer
+	for rows.Next() {
+		var i Customer
+		if err := rows.Scan(
+			&i.ID,
+			&i.FranchiseID,
+			&i.RunID,
+			&i.SortOrder,
+			&i.Name,
+			&i.AddressLine,
+			&i.Suburb,
+			&i.Phone,
+			&i.MapRef,
+			&i.Regarding,
+			&i.ServiceMinutes,
+			&i.AccessNotes,
+			&i.GeneralNotes,
+			&i.Active,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRunCustomers = `-- name: ListRunCustomers :many
 SELECT c.id, c.franchise_id, c.run_id, c.sort_order, c.name, c.address_line, c.suburb, c.phone, c.map_ref, c.regarding, c.service_minutes, c.access_notes, c.general_notes, c.active,
     (SELECT CAST(COALESCE(SUM(d.quantity), 0) AS INTEGER) FROM dispensers d

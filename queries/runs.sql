@@ -37,3 +37,8 @@ ORDER BY c.sort_order, c.id;
 SELECT * FROM customers
 WHERE franchise_id = ? AND active = 1 AND run_id IS NULL
 ORDER BY name;
+
+-- name: ListActiveCustomersByFranchise :many
+SELECT * FROM customers
+WHERE franchise_id = ? AND active = 1
+ORDER BY name;

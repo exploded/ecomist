@@ -56,16 +56,16 @@ type suburbOption struct {
 	Count int
 }
 
-// suburbOptions groups the franchise's unassigned customers by suburb (skipping
+// suburbOptions groups the franchise's active customers by suburb (skipping
 // blank suburbs) so the picker only offers suburbs that have businesses to add.
 func (a *app) suburbOptions(r *http.Request) ([]suburbOption, error) {
 	cur := auth.FromContext(r.Context())
-	unassigned, err := a.q.ListUnassignedCustomers(r.Context(), cur.FranchiseID)
+	customers, err := a.q.ListActiveCustomersByFranchise(r.Context(), cur.FranchiseID)
 	if err != nil {
 		return nil, err
 	}
 	counts := map[string]int{}
-	for _, c := range unassigned {
+	for _, c := range customers {
 		if s := strings.TrimSpace(c.Suburb); s != "" {
 			counts[s]++
 		}
@@ -128,15 +128,16 @@ func (a *app) runCreateFromSuburbs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	unassigned, err := a.q.ListUnassignedCustomers(r.Context(), cur.FranchiseID)
+	customers, err := a.q.ListActiveCustomersByFranchise(r.Context(), cur.FranchiseID)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
 	// Keep only businesses in the chosen suburbs, ordered by suburb then name so
-	// the new run's stops start in a sensible order.
+	// the new run's stops start in a sensible order. Businesses already on another
+	// run are moved onto this one.
 	var pick []db.Customer
-	for _, c := range unassigned {
+	for _, c := range customers {
 		if selected[strings.TrimSpace(c.Suburb)] {
 			pick = append(pick, c)
 		}
