@@ -6,13 +6,8 @@
     <h1>Runs</h1>
     <p class="page-sub">{{.FranchiseName}}</p>
   </div>
-  <a class="btn btn-sm" href="/runs/new">New run from suburbs</a>
+  <a class="btn btn-sm" href="/runs/new">Create New Run</a>
 </div>
-
-<form class="card no-print" hx-post="/runs" hx-swap="none" style="display:flex;gap:8px">
-  <input class="input" type="text" name="name" placeholder="New empty run name&hellip;" required>
-  <button type="submit" class="btn btn-ghost" hx-disabled-elt="this">Add empty</button>
-</form>
 
 <div class="section" style="min-height:120px">
   {{if .Items}}
@@ -31,7 +26,7 @@
   </div>
   {{end}}
   {{else}}
-  <div class="empty">No runs yet - add one above, then add customers to it.</div>
+  <div class="empty">No runs yet - use "Create New Run" to add one.</div>
   {{end}}
 </div>
 {{end}}

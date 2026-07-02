@@ -235,8 +235,9 @@ func insertImport(ctx context.Context, q *db.Queries, franchiseID int64, data *i
 			}
 			if err := q.CreateDispenser(ctx, db.CreateDispenserParams{
 				CustomerID: cust.ID, ZoneID: zoneID, CustomerID_2: cust.ID,
-				SeqLabel: d.SeqLabel, Location: firstNonEmpty(d.Location, "(unknown location)"),
-				ModelID: modelID, Quantity: max(1, d.Quantity),
+				SeqLabel: "", // parsed number stripped; renumbered cleanly below
+				Location: firstNonEmpty(d.Location, "(unknown location)"),
+				ModelID:  modelID, Quantity: max(1, d.Quantity),
 				FragranceID: fragranceID, FragranceNote: d.FragranceNote,
 				RefillSizeMl:        nullIfZero(d.RefillSizeMl),
 				ServiceIntervalDays: nullIfZero(d.ServiceIntervalDays),
@@ -244,6 +245,10 @@ func insertImport(ctx context.Context, q *db.Queries, franchiseID int64, data *i
 			}); err != nil {
 				return 0, err
 			}
+		}
+		// Assign clean numbers top-to-bottom, ignoring whatever the PDF printed.
+		if err := renumberDispensers(ctx, q, cust.ID); err != nil {
+			return 0, err
 		}
 	}
 	return run.ID, nil

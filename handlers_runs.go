@@ -21,34 +21,6 @@ func (a *app) runList(w http.ResponseWriter, r *http.Request) {
 	a.render(w, r, "runs/list", "", pd)
 }
 
-func (a *app) runCreate(w http.ResponseWriter, r *http.Request) {
-	cur := auth.FromContext(r.Context())
-	if cur.FranchiseID == 0 {
-		toast(w, noFranchiseMsg, "error")
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-	name := strings.TrimSpace(r.FormValue("name"))
-	if name == "" {
-		toast(w, "Please enter a run name", "error")
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-	if err := a.q.CreateRun(r.Context(), db.CreateRunParams{
-		FranchiseID: cur.FranchiseID, Name: name,
-	}); err != nil {
-		a.serverError(w, r, err)
-		return
-	}
-	run, err := a.q.GetLastRun(r.Context())
-	if err != nil {
-		a.serverError(w, r, err)
-		return
-	}
-	w.Header().Set("HX-Redirect", "/runs/"+itoa(run.ID))
-	w.WriteHeader(http.StatusOK)
-}
-
 // suburbOption is one selectable suburb on the "new run" picker, with the
 // number of businesses in it that aren't on a run yet.
 type suburbOption struct {

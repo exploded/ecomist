@@ -372,6 +372,11 @@ textarea.input { resize: vertical; min-height: 70px; }
 .tick-note { position: relative; flex-shrink: 0; }
 .tick-note summary { list-style: none; }
 .tick-note summary::-webkit-details-marker { display: none; }
+/* Pencil goes amber while the dispenser carries a note - live as you type
+   (:placeholder-shown flips off once there's text) and on load from the saved value. */
+.tick-note:has(.autosave:not(:placeholder-shown)) > summary {
+  color: var(--amber-deep); background: #fdf1e2;
+}
 .tick-note-pop {
   position: absolute; right: 0; top: calc(100% + 4px); z-index: 25;
   width: min(78vw, 320px); background: var(--card); border-radius: var(--radius-sm);

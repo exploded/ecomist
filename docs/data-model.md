@@ -232,7 +232,7 @@ Pro", "EcoProC", "Eco Pro C", "ECO6") and drives the `x Maxi / y Midi` tallies.
 | customer_id | int FK → customer | |
 | zone_id | int FK → zone | **nullable** |
 | sort_order | int | numeric, for ordering (1, 2, 3…) |
-| seq_label | text | printed label; handles ranges: "1", "9 - 10", "62 - 63" |
+| seq_label | text | system-owned printed label, never user-entered; recomputed top-to-bottom in display order (quantity consumes numbers), so it handles ranges: "1", "9 - 10", "62 - 63" |
 | location | text | "Foyer Area, around from Reception" |
 | model_id | int FK → dispenser_model | |
 | quantity | int | 1 or 2 — covers ranged lines (`9 - 10 … x 2`) |

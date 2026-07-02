@@ -26,7 +26,7 @@
   </button>
   {{if $d.TickID.Valid}}
   <details class="tick-note">
-    <summary class="btn-icon" aria-label="Add a note" title="Note">&#9998;</summary>
+    <summary class="btn-icon" aria-label="{{if $d.TickNote.String}}Edit note{{else}}Add a note{{end}}" title="Note">&#9998;</summary>
     <div class="tick-note-pop">
       <input class="input autosave" name="note" value="{{$d.TickNote.String}}" placeholder="Note for this dispenser&hellip;"
         hx-patch="/sheets/{{$sheetID}}/ticks/{{$d.ID}}/note" hx-trigger="change" hx-swap="none">
@@ -39,10 +39,7 @@
           hx-vals='{"rerender":"1"}' hx-target="#stop-groups" hx-swap="outerHTML" style="min-width:240px">
       <input type="hidden" name="sheet_id" value="{{$sheetID}}">
       <input type="hidden" name="stop_id" value="{{$stopID}}">
-      <div class="input-row">
-        <input class="input" name="seq_label" value="{{$d.SeqLabel}}" placeholder="#" style="flex:0 0 54px;text-align:center">
-        <input class="input" name="location" value="{{$d.Location}}" placeholder="Location" required style="flex:1">
-      </div>
+      <input class="input" name="location" value="{{$d.Location}}" placeholder="Location" required>
       <input class="input" name="zone_name" list="stop-zone-names" value="{{$d.ZoneLabel.String}}"
         autocomplete="off" placeholder="Zone (blank = no zone)" style="margin-top:8px">
       <button type="submit" class="btn btn-sm btn-block" style="margin-top:8px" hx-disabled-elt="this">Save</button>

@@ -130,7 +130,7 @@ WHERE d.id = (SELECT MAX(id) FROM dispensers);
 
 -- name: UpdateDispenser :exec
 UPDATE dispensers SET
-    zone_id = ?, seq_label = ?, location = ?, model_id = ?, quantity = ?,
+    zone_id = ?, location = ?, model_id = ?, quantity = ?,
     fragrance_id = ?, fragrance_note = ?, refill_size_ml = ?,
     service_interval_days = ?, notes = ?
 WHERE id = ?;
@@ -140,3 +140,7 @@ UPDATE dispensers SET active = 0 WHERE id = ?;
 
 -- name: SetDispenserSortOrder :exec
 UPDATE dispensers SET sort_order = ? WHERE id = ?;
+
+-- seq_label is system-owned: recomputed top-to-bottom in display order.
+-- name: SetDispenserSeqLabel :exec
+UPDATE dispensers SET seq_label = ? WHERE id = ?;

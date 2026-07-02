@@ -32,7 +32,6 @@ func (a *app) routes() http.Handler {
 
 	// Runs
 	appMux.HandleFunc("GET /runs", a.runList)
-	appMux.HandleFunc("POST /runs", a.runCreate)
 	appMux.HandleFunc("GET /runs/new", a.runNew)
 	appMux.HandleFunc("POST /runs/from-suburbs", a.runCreateFromSuburbs)
 	appMux.HandleFunc("GET /runs/{id}", a.runShow)

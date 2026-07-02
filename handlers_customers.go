@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -449,7 +451,7 @@ func (a *app) dispenserCreate(w http.ResponseWriter, r *http.Request) {
 		CustomerID:          customerID,
 		ZoneID:              zoneID,
 		CustomerID_2:        customerID,
-		SeqLabel:            strings.TrimSpace(r.FormValue("seq_label")),
+		SeqLabel:            "", // system-owned; assigned by renumberDispensers below
 		Location:            location,
 		ModelID:             modelID.Int64,
 		Quantity:            max(1, formInt(r, "quantity", 1)),
@@ -459,6 +461,10 @@ func (a *app) dispenserCreate(w http.ResponseWriter, r *http.Request) {
 		ServiceIntervalDays: formNullInt(r, "service_interval_days"),
 		Notes:               strings.TrimSpace(r.FormValue("notes")),
 	}); err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	if err := renumberDispensers(r.Context(), a.q, customerID); err != nil {
 		a.serverError(w, r, err)
 		return
 	}
@@ -489,7 +495,6 @@ func (a *app) dispenserUpdate(w http.ResponseWriter, r *http.Request) {
 			*dst = strings.TrimSpace(r.PostForm.Get(name))
 		}
 	}
-	set("seq_label", &d.SeqLabel)
 	set("location", &d.Location)
 	set("fragrance_note", &d.FragranceNote)
 	set("notes", &d.Notes)
@@ -536,11 +541,16 @@ func (a *app) dispenserUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err := a.q.UpdateDispenser(r.Context(), db.UpdateDispenserParams{
-		ZoneID: d.ZoneID, SeqLabel: d.SeqLabel, Location: d.Location,
+		ZoneID: d.ZoneID, Location: d.Location,
 		ModelID: d.ModelID, Quantity: d.Quantity, FragranceID: d.FragranceID,
 		FragranceNote: d.FragranceNote, RefillSizeMl: d.RefillSizeMl,
 		ServiceIntervalDays: d.ServiceIntervalDays, Notes: d.Notes, ID: d.ID,
 	}); err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	// A changed quantity or zone shifts the running count, so renumber every time.
+	if err := renumberDispensers(r.Context(), a.q, d.CustomerID); err != nil {
 		a.serverError(w, r, err)
 		return
 	}
@@ -571,11 +581,47 @@ func (a *app) dispenserDelete(w http.ResponseWriter, r *http.Request) {
 		a.serverError(w, r, err)
 		return
 	}
+	if err := renumberDispensers(r.Context(), a.q, d.CustomerID); err != nil {
+		a.serverError(w, r, err)
+		return
+	}
 	if sheetID := formInt(r, "sheet_id", 0); sheetID != 0 {
 		a.renderStopDispensers(w, r, sheetID, formInt(r, "stop_id", 0))
 		return
 	}
 	a.renderDispenserSection(w, r, d.CustomerID)
+}
+
+// renumberDispensers rewrites every dispenser's seq_label for a customer as a
+// single running count in display order (zones in order, then within-zone
+// sort_order). A row's quantity consumes that many numbers, so a qty-2 row
+// reads "9 - 10" and the next row starts at 11. seq_label is system-owned —
+// users never type it; call this after any add, edit, remove, reorder or import.
+func renumberDispensers(ctx context.Context, q *db.Queries, customerID int64) error {
+	rows, err := q.ListDispensersByCustomer(ctx, customerID)
+	if err != nil {
+		return err
+	}
+	n := int64(1)
+	for _, d := range rows {
+		qty := d.Quantity
+		if qty < 1 {
+			qty = 1
+		}
+		label := fmt.Sprintf("%d", n)
+		if qty > 1 {
+			label = fmt.Sprintf("%d - %d", n, n+qty-1)
+		}
+		if label != d.SeqLabel {
+			if err := q.SetDispenserSeqLabel(ctx, db.SetDispenserSeqLabelParams{
+				SeqLabel: label, ID: d.ID,
+			}); err != nil {
+				return err
+			}
+		}
+		n += qty
+	}
+	return nil
 }
 
 // renderDispenserSection re-renders the zones+dispensers block of the editor.

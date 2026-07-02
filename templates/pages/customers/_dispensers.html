@@ -35,8 +35,8 @@
     {{range .Dispensers}}
     <div class="card" id="disp-{{.ID}}" style="padding:11px 12px">
       <div class="input-row">
-        <input class="input autosave" name="seq_label" value="{{.SeqLabel}}" placeholder="#" style="flex:0 0 58px;text-align:center"
-          hx-patch="/dispensers/{{.ID}}" hx-trigger="change" hx-swap="none">
+        <span class="input" title="Auto-numbered (top to bottom)"
+          style="flex:0 0 58px;text-align:center;display:flex;align-items:center;justify-content:center;font-weight:700;background:var(--pine-50);color:var(--muted)">{{if .SeqLabel}}{{.SeqLabel}}{{else}}&ndash;{{end}}</span>
         <input class="input autosave" name="location" value="{{.Location}}" placeholder="Location"
           hx-patch="/dispensers/{{.ID}}" hx-trigger="change" hx-swap="none">
         <input class="input autosave" name="zone_name" list="zone-names" value="{{.ZoneLabel.String}}"

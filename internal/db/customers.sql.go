@@ -721,6 +721,21 @@ func (q *Queries) SetCustomerSortOrder(ctx context.Context, arg SetCustomerSortO
 	return err
 }
 
+const setDispenserSeqLabel = `-- name: SetDispenserSeqLabel :exec
+UPDATE dispensers SET seq_label = ? WHERE id = ?
+`
+
+type SetDispenserSeqLabelParams struct {
+	SeqLabel string `json:"seq_label"`
+	ID       int64  `json:"id"`
+}
+
+// seq_label is system-owned: recomputed top-to-bottom in display order.
+func (q *Queries) SetDispenserSeqLabel(ctx context.Context, arg SetDispenserSeqLabelParams) error {
+	_, err := q.db.ExecContext(ctx, setDispenserSeqLabel, arg.SeqLabel, arg.ID)
+	return err
+}
+
 const setDispenserSortOrder = `-- name: SetDispenserSortOrder :exec
 UPDATE dispensers SET sort_order = ? WHERE id = ?
 `
@@ -812,7 +827,7 @@ func (q *Queries) UpdateCustomer(ctx context.Context, arg UpdateCustomerParams) 
 
 const updateDispenser = `-- name: UpdateDispenser :exec
 UPDATE dispensers SET
-    zone_id = ?, seq_label = ?, location = ?, model_id = ?, quantity = ?,
+    zone_id = ?, location = ?, model_id = ?, quantity = ?,
     fragrance_id = ?, fragrance_note = ?, refill_size_ml = ?,
     service_interval_days = ?, notes = ?
 WHERE id = ?
@@ -820,7 +835,6 @@ WHERE id = ?
 
 type UpdateDispenserParams struct {
 	ZoneID              sql.NullInt64 `json:"zone_id"`
-	SeqLabel            string        `json:"seq_label"`
 	Location            string        `json:"location"`
 	ModelID             int64         `json:"model_id"`
 	Quantity            int64         `json:"quantity"`
@@ -835,7 +849,6 @@ type UpdateDispenserParams struct {
 func (q *Queries) UpdateDispenser(ctx context.Context, arg UpdateDispenserParams) error {
 	_, err := q.db.ExecContext(ctx, updateDispenser,
 		arg.ZoneID,
-		arg.SeqLabel,
 		arg.Location,
 		arg.ModelID,
 		arg.Quantity,

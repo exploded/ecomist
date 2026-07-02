@@ -607,6 +607,11 @@ func (a *app) zoneReorder(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+		// Moving a zone shuffles dispensers across the running count.
+		if err := renumberDispensers(r.Context(), a.q, stop.CustomerID); err != nil {
+			a.serverError(w, r, err)
+			return
+		}
 	}
 	a.renderStopDispensers(w, r, sheet.ID, stop.ID)
 }
@@ -662,6 +667,11 @@ func (a *app) dispenserReorder(w http.ResponseWriter, r *http.Request) {
 				a.serverError(w, r, err)
 				return
 			}
+		}
+		// Display order changed, so the seq_label count changes too.
+		if err := renumberDispensers(r.Context(), a.q, stop.CustomerID); err != nil {
+			a.serverError(w, r, err)
+			return
 		}
 	}
 	a.renderStopDispensers(w, r, sheet.ID, stop.ID)

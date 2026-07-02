@@ -31,7 +31,7 @@
       {{range .Dispensers}}
       <div class="small" style="padding:4px 0;border-bottom:1px solid var(--mist-100)">
         {{if .ZoneLabel}}<span class="badge" style="margin-right:4px">{{.ZoneLabel}}</span>{{end}}
-        {{if .SeqLabel}}{{.SeqLabel}}. {{end}}{{.Location}}
+        {{.Location}}
         <span class="muted">&mdash; {{.Model}}{{if gt .Quantity 1}} &times;{{.Quantity}}{{end}}{{if .Fragrance}}, {{.Fragrance}}{{else if .FragranceNote}}, {{.FragranceNote}}{{end}}{{if .ServiceIntervalDays}}, {{.ServiceIntervalDays}}d{{end}}</span>
       </div>
       {{end}}
